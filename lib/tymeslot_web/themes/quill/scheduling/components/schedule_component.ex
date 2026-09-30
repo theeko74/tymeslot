@@ -6,6 +6,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
   use TymeslotWeb, :live_component
   use Gettext, backend: TymeslotWeb.Gettext
 
+  alias Tymeslot.Profiles
   alias Tymeslot.Utils.DateTimeUtils.Duration
   alias TymeslotWeb.Live.Scheduling.CalendarHelpers
   alias TymeslotWeb.Live.Scheduling.CalendarNavigation
@@ -181,6 +182,18 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                       >
                         {dgettext("booking", "Select a Date & Time")}
                       </.section_header>
+
+                      <p :if={assigns[:team]} class="schedule-advance-notice text-glass-primary">
+                        {dgettext("booking", "With %{team}: %{members}",
+                          team: @team.name,
+                          members:
+                            Enum.map_join(
+                              assigns[:team_member_profiles] || [],
+                              ", ",
+                              &Profiles.display_name/1
+                            )
+                        )}
+                      </p>
 
                       <%= if @organizer_profile do %>
                         <p class="schedule-advance-notice text-glass-primary">

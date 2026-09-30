@@ -12,6 +12,7 @@ defmodule Tymeslot.Meetings.MeetingQueries do
 
   alias Ecto.Changeset
   alias Ecto.UUID
+  alias Tymeslot.Meetings.CoHostQueries
   alias Tymeslot.Meetings.MeetingListQueries
   alias Tymeslot.Meetings.MeetingSchema, as: Meeting
   alias Tymeslot.Meetings.MeetingState
@@ -542,7 +543,7 @@ defmodule Tymeslot.Meetings.MeetingQueries do
     query =
       Meeting
       |> MeetingState.where_slot_live()
-      |> where([m], m.organizer_user_id == ^organizer_user_id)
+      |> CoHostQueries.where_hosted_by(organizer_user_id)
       |> where([m], m.start_time >= ^from_utc and m.start_time < ^to_utc)
       |> select([m], %{start_time: m.start_time, meeting_type_id: m.meeting_type_id})
 

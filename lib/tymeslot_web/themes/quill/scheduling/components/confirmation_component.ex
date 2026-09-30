@@ -308,10 +308,12 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ConfirmationComponent d
 
   # ========== PRIVATE HELPERS ==========
 
-  defp get_organizer_text(nil), do: ""
+  # The team's name on a team page, the organiser's otherwise.
+  defp host_name(%{team: %{name: name}}), do: name
+  defp host_name(assigns), do: Profiles.display_name(assigns[:organizer_profile])
 
-  defp get_organizer_text(organizer_profile) do
-    case Profiles.display_name(organizer_profile) do
+  defp get_organizer_text(assigns) do
+    case host_name(assigns) do
       nil -> ""
       name -> dgettext("booking", "with %{name}", name: name)
     end
@@ -340,13 +342,13 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ConfirmationComponent d
       assigns[:is_rescheduling] ->
         dgettext("booking", "%{name}, your meeting %{organizer} has been rescheduled.",
           name: assigns[:name],
-          organizer: get_organizer_text(assigns[:organizer_profile])
+          organizer: get_organizer_text(assigns)
         )
 
       true ->
         dgettext("booking", "%{name}, your meeting %{organizer} is all set.",
           name: assigns[:name],
-          organizer: get_organizer_text(assigns[:organizer_profile])
+          organizer: get_organizer_text(assigns)
         )
     end
   end

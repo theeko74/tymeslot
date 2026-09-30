@@ -1,0 +1,252 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: cs\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "%{count} member"
+msgid_plural "%{count} members"
+msgstr[0] "%{count} člen"
+msgstr[1] "%{count} členové"
+msgstr[2] "%{count} členů"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "%{minutes} min"
+msgstr "%{minutes} min"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Add"
+msgstr "Přidat"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Add a member by email"
+msgstr "Přidat člena podle e-mailu"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Book meetings with several people at once. A team page only offers the times when every member is free."
+msgstr "Rezervujte schůzky s více lidmi najednou. Týmová stránka nabízí jen časy, kdy mají volno všichni členové."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Cancel"
+msgstr "Zrušit"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Close"
+msgstr "Zavřít"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Copy team link"
+msgstr "Zkopírovat odkaz týmu"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Delete"
+msgstr "Smazat"
+
+#: lib/tymeslot_web/live/dashboard/teams/delete_team_modal.ex
+#, elixir-autogen, elixir-format
+msgid "Delete team"
+msgstr "Smazat tým"
+
+#: lib/tymeslot_web/live/dashboard/teams/delete_team_modal.ex
+#, elixir-autogen, elixir-format
+msgid "Delete this team?"
+msgstr "Opravdu chcete tento tým smazat?"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Description (optional)"
+msgstr "Popis (nepovinné)"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Edit"
+msgstr "Upravit"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Edit team"
+msgstr "Upravit tým"
+
+#: lib/tymeslot_web/live/dashboard/teams/delete_team_modal.ex
+#, elixir-autogen, elixir-format
+msgid "Keep team"
+msgstr "Ponechat tým"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Leave team"
+msgstr "Opustit tým"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Manage"
+msgstr "Spravovat"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Meeting duration (minutes)"
+msgstr "Délka schůzky (minuty)"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Member"
+msgstr "Člen"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Member added."
+msgstr "Člen byl přidán."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Member removed."
+msgstr "Člen byl odebrán."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "New team"
+msgstr "Nový tým"
+
+#: lib/tymeslot/teams.ex
+#, elixir-autogen, elixir-format
+msgid "No Tymeslot account uses this email address."
+msgstr "Tuto e-mailovou adresu nepoužívá žádný účet Tymeslot."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "No calendar connected: the team page is unavailable until this member connects one."
+msgstr "Není připojen kalendář: týmová stránka je nedostupná, dokud tento člen nepřipojí kalendář."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Owner"
+msgstr "Vlastník"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Page address"
+msgstr "Adresa stránky"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Remove"
+msgstr "Odebrat"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Save team"
+msgstr "Uložit tým"
+
+#: lib/tymeslot/teams.ex
+#, elixir-autogen, elixir-format
+msgid "Something went wrong. Please try again."
+msgstr "Něco se pokazilo. Zkuste to prosím znovu."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Team deleted."
+msgstr "Tým byl smazán."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Team link copied to clipboard!"
+msgstr "Odkaz týmu byl zkopírován."
+
+#: lib/tymeslot_web/components/dashboard/meetings/meeting_list_components.ex
+#, elixir-autogen, elixir-format
+msgid "Team meeting"
+msgstr "Týmová schůzka"
+
+#: lib/tymeslot_web/components/dashboard/meetings/meeting_list_components.ex
+#, elixir-autogen, elixir-format
+msgid "Team meeting · co-host"
+msgstr "Týmová schůzka · spoluhostitel"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Team name"
+msgstr "Název týmu"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Team saved."
+msgstr "Tým byl uložen."
+
+#: lib/tymeslot_web/components/dashboard_sidebar.ex
+#: lib/tymeslot_web/helpers/page_titles.ex
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Teams"
+msgstr "Týmy"
+
+#: lib/tymeslot_web/live/dashboard/teams/delete_team_modal.ex
+#, elixir-autogen, elixir-format
+msgid "The booking page of “%{name}” will stop working for everyone holding its link. Meetings already booked are kept. This cannot be undone."
+msgstr "Rezervační stránka „%{name}“ přestane fungovat pro všechny, kdo mají její odkaz. Již rezervované schůzky zůstanou zachovány. Tuto akci nelze vrátit."
+
+#: lib/tymeslot/teams.ex
+#, elixir-autogen, elixir-format
+msgid "The owner cannot leave the team. Delete it instead."
+msgstr "Vlastník nemůže tým opustit. Místo toho ho smažte."
+
+#: lib/tymeslot/teams.ex
+#, elixir-autogen, elixir-format
+msgid "This person is already a member of the team."
+msgstr "Tato osoba už je členem týmu."
+
+#: lib/tymeslot/teams.ex
+#, elixir-autogen, elixir-format
+msgid "This team no longer exists."
+msgstr "Tento tým už neexistuje."
+
+#: lib/tymeslot/teams.ex
+#, elixir-autogen, elixir-format
+msgid "You already have a meeting type with this name. Choose another team name."
+msgstr "Typ schůzky s tímto názvem už máte. Zvolte jiný název týmu."
+
+#: lib/tymeslot/teams.ex
+#, elixir-autogen, elixir-format
+msgid "You are already in this team."
+msgstr "V tomto týmu už jste."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "You are not in any team yet. Create one and add colleagues who have a Tymeslot account."
+msgstr "Zatím nejste v žádném týmu. Vytvořte tým a přidejte kolegy, kteří mají účet Tymeslot."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "You left the team."
+msgstr "Členství v týmu bylo ukončeno."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "colleague@example.com"
+msgstr "kolega@example.com"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "e.g., Sales team"
+msgstr "např. Obchodní tým"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "owner"
+msgstr "vlastník"

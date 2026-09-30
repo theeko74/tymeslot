@@ -71,6 +71,7 @@ defmodule Tymeslot.Test.TagTaxonomy do
       :profiles,
       :scheduling,
       :security,
+      :teams,
       :themes,
       :ui,
       :utils,

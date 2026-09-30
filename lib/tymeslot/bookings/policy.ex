@@ -111,7 +111,8 @@ defmodule Tymeslot.Bookings.Policy do
           required(:show_as_free) => boolean(),
           required(:attachments_snapshot) => [map()],
           required(:view_url) => String.t(),
-          required(:reschedule_url) => String.t(),
+          required(:reschedule_url) => String.t() | nil,
+          required(:team_id) => integer() | nil,
           required(:cancel_url) => String.t(),
           required(:meeting_url) => String.t() | nil,
           required(:custom_fields_snapshot) => [map()],
@@ -206,7 +207,19 @@ defmodule Tymeslot.Bookings.Policy do
     |> Map.merge(attendee_attributes(params, user_timezone))
     |> Map.merge(location_attributes(meeting_type_record, params, video_integration_id))
     |> Map.merge(source_attribution(params))
-    |> Map.merge(build_meeting_action_urls(meeting_uid, org_username))
+    |> Map.merge(action_and_team_attributes(meeting_uid, org_username, params))
+  end
+
+  # A team meeting occupies several hosts, and the reschedule page offers the
+  # organiser's times only, so it is not reschedulable (see
+  # `can_reschedule_meeting?/1`) and carries no link to a page that would
+  # refuse it.
+  defp action_and_team_attributes(meeting_uid, org_username, %BuildParams{team_id: team_id}) do
+    urls = build_meeting_action_urls(meeting_uid, org_username)
+
+    if is_integer(team_id),
+      do: Map.merge(urls, %{team_id: team_id, reschedule_url: nil}),
+      else: Map.put(urls, :team_id, nil)
   end
 
   # Who the booking is for, as they gave it. `attendee_phone` is deliberately
@@ -415,6 +428,9 @@ defmodule Tymeslot.Bookings.Policy do
   @spec can_reschedule_meeting?(meeting_record()) :: :ok | {:error, String.t()}
   def can_reschedule_meeting?(meeting) do
     cond do
+      team_meeting?(meeting) ->
+        {:error, "A team meeting cannot be rescheduled. Cancel it and book a new time instead."}
+
       meeting.status == "cancelled" ->
         {:error, "Cannot reschedule a cancelled meeting"}
 
@@ -474,6 +490,11 @@ defmodule Tymeslot.Bookings.Policy do
     now = Clock.utc_now()
     DateTime.compare(start_time, now) != :gt && DateTime.compare(end_time, now) == :gt
   end
+
+  @doc "Whether a meeting was booked on a team page."
+  @spec team_meeting?(map()) :: boolean()
+  def team_meeting?(%{team_id: team_id}) when is_integer(team_id), do: true
+  def team_meeting?(_meeting), do: false
 
   @doc """
   Checks if a meeting is in the past.

@@ -17,6 +17,7 @@ defmodule TymeslotWeb.Live.Scheduling.OrganizerHelpers do
   alias Tymeslot.Security.InputProcessor
   alias TymeslotWeb.Helpers.ClientIP
   alias TymeslotWeb.Live.Scheduling.BookingConfig
+  alias TymeslotWeb.Live.Scheduling.TeamHelpers
 
   import Component, only: [assign: 3]
 
@@ -94,6 +95,17 @@ defmodule TymeslotWeb.Live.Scheduling.OrganizerHelpers do
   when no meeting type has been picked yet.
   """
   @spec assign_booking_window(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
+  def assign_booking_window(%{assigns: %{team: %{}}} = socket) do
+    assign(
+      socket,
+      :booking_window_days,
+      TeamHelpers.booking_window_days(
+        socket.assigns[:team_member_profiles] || [],
+        socket.assigns[:meeting_type]
+      )
+    )
+  end
+
   def assign_booking_window(socket) do
     assign(
       socket,

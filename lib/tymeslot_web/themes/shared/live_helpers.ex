@@ -26,6 +26,7 @@ defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
     NextAvailable,
     OrganizerHelpers,
     PreviewToken,
+    TeamHelpers,
     ThemeUtils
   }
 
@@ -67,6 +68,9 @@ defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
         OrganizerHelpers.handle_username_resolution(socket, params["username"])
       end
 
+    # A team page re-pins the settings type `assign_initial_state_fun` cleared.
+    socket = pin_team_meeting_type(socket)
+
     # Apply theme customization after organizer is resolved
     socket = maybe_assign_customization(socket)
 
@@ -74,8 +78,8 @@ defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
     # owner's user id) is resolved. Gates simulate-vs-persist downstream.
     socket = assign_owner_preview(socket, params)
 
-    # Subscribe to calendar event updates for the organiser so availability refreshes on sync
-    socket = maybe_subscribe_to_calendar_events(socket)
+    # Subscribe to calendar event updates for the host(s) so availability refreshes on sync
+    socket = TeamHelpers.subscribe_to_host_calendars(socket)
 
     # The reschedule uid must reach the socket before the first entry handler
     # runs: it builds the questions engine and then memoises it on the
@@ -233,7 +237,11 @@ defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
     |> handle_confirmation_params(params)
   end
 
-  # A reschedule is pinned to the type it booked; `ReschedulePin` says why.
+  # A reschedule is pinned to the type it booked; `ReschedulePin` says why. A
+  # team page (never a reschedule) is pinned to its settings type.
+  defp pin_reschedule_meeting_type(%{assigns: %{team: %{}}} = socket),
+    do: pin_team_meeting_type(socket)
+
   defp pin_reschedule_meeting_type(socket) do
     case ReschedulePin.meeting_type(socket) do
       nil ->
@@ -500,15 +508,18 @@ defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
           |> do_handle_booking_entry(params)
       end
     else
-      username = socket.assigns[:username_context]
-      slug = socket.assigns[:selected_duration] || params["slug"]
-
-      if is_binary(username) && is_binary(slug) do
-        redirect(socket, to: ~p"/#{username}/#{slug}")
-      else
-        redirect(socket, to: ~p"/")
-      end
+      redirect(socket, to: schedule_path(socket, params))
     end
+  end
+
+  # Where a booking step reached with nothing selected sends the booker back to.
+  defp schedule_path(%{assigns: %{team: %{} = team}}, _params),
+    do: TeamHelpers.path(team, :schedule)
+
+  defp schedule_path(socket, params) do
+    username = socket.assigns[:username_context]
+    slug = socket.assigns[:selected_duration] || params["slug"]
+    if is_binary(username) && is_binary(slug), do: ~p"/#{username}/#{slug}", else: ~p"/"
   end
 
   # `/:username/:slug/book` can be entered directly (a reschedule deep-link,
@@ -629,15 +640,6 @@ defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
     socket.assigns[:scheduling_referrer]
   end
 
-  defp maybe_subscribe_to_calendar_events(socket) do
-    organizer_user_id = socket.assigns[:organizer_user_id]
-
-    if connected?(socket) && is_integer(organizer_user_id) &&
-         !socket.assigns[:calendar_pubsub_subscribed] do
-      Phoenix.PubSub.subscribe(Tymeslot.PubSub, "calendar_events:#{organizer_user_id}")
-      assign(socket, :calendar_pubsub_subscribed, true)
-    else
-      socket
-    end
-  end
+  defp pin_team_meeting_type(socket),
+    do: TeamHelpers.pin_meeting_type(socket, &assign_meeting_type/2)
 end

@@ -32,6 +32,10 @@ defmodule Tymeslot.Meetings.Scheduling do
   `enforce_booking_limits: false` (host-created ad-hoc bookings) to skip
   them; conflict checking always runs.
 
+  Pass `co_host_user_ids: [id, ...]` for a team booking: every co-host's
+  conflicts and booking limits are then checked in the same transaction as the
+  organiser's, so none of them can be double-booked by a concurrent submit.
+
   ## Examples
 
       iex> create_meeting_with_conflict_check(%{uid: "unique-123", title: "Meeting", start_time: ~U[2024-01-01 10:00:00Z], end_time: ~U[2024-01-01 11:00:00Z]})
@@ -53,27 +57,22 @@ defmodule Tymeslot.Meetings.Scheduling do
     start_time = MapKeys.get(attrs, :start_time)
     end_time = MapKeys.get(attrs, :end_time)
     organizer_user_id = MapKeys.get(attrs, :organizer_user_id)
+    meeting_type_id = MapKeys.get(attrs, :meeting_type_id)
 
     if start_time && end_time do
-      limit_check =
-        build_limit_check(
+      hosts =
+        host_checks(
           organizer_user_id,
+          meeting_type_id,
+          Keyword.get(opts, :co_host_user_ids, []),
           start_time,
-          MapKeys.get(attrs, :meeting_type_id),
-          nil,
+          end_time,
           opts
         )
 
-      execute_conflict_checked_transaction(
-        start_time,
-        end_time,
-        organizer_user_id,
-        MapKeys.get(attrs, :meeting_type_id),
-        limit_check,
-        fn ->
-          create_meeting_in_transaction(attrs)
-        end
-      )
+      execute_conflict_checked_transaction(start_time, end_time, hosts, fn ->
+        create_meeting_in_transaction(attrs)
+      end)
     else
       {:error, :invalid_time_range}
     end
@@ -125,34 +124,64 @@ defmodule Tymeslot.Meetings.Scheduling do
 
   # Private functions
 
-  defp execute_conflict_checked_transaction(
-         start_time,
-         end_time,
+  # One entry per host the new meeting occupies: the organiser, and on a team
+  # booking every co-host (`opts[:co_host_user_ids]`). Each is checked against
+  # their own rules: the organiser against the booked meeting type, a co-host
+  # against their default schedule's buffer and their profile's booking caps,
+  # which is what the team page offered them on (`TeamOffer`).
+  #
+  # Sorted by user id so that two team bookings sharing members take the
+  # advisory limit locks and the conflict row locks in the same order.
+  defp host_checks(
          organizer_user_id,
          meeting_type_id,
-         limit_check,
-         operation_fn
+         co_host_user_ids,
+         start_time,
+         end_time,
+         opts
        ) do
-    {buffered_start, buffered_end} =
-      compute_buffered_window(start_time, end_time, organizer_user_id, meeting_type_id)
+    co_hosts = co_host_user_ids |> Enum.reject(&(&1 == organizer_user_id)) |> Enum.uniq()
 
+    [{organizer_user_id, meeting_type_id} | Enum.map(co_hosts, &{&1, nil})]
+    |> Enum.sort_by(fn {user_id, _type_id} -> user_id || 0 end)
+    |> Enum.map(fn {user_id, type_id} ->
+      %{
+        user_id: user_id,
+        limit_check: build_limit_check(user_id, start_time, type_id, nil, opts),
+        window: compute_buffered_window(start_time, end_time, user_id, type_id)
+      }
+    end)
+  end
+
+  defp execute_conflict_checked_transaction(start_time, end_time, hosts, operation_fn) do
     Repo.transaction(fn ->
-      with :ok <- enforce_booking_limits(limit_check),
-           {:ok, :no_conflicts} <-
-             MeetingConflictQueries.count_locked_conflicts(
-               buffered_start,
-               buffered_end,
-               nil,
-               organizer_user_id
-             ) do
-        operation_fn.()
-      else
+      case check_hosts(hosts) do
+        :ok ->
+          operation_fn.()
+
         {:error, :booking_limit_reached} ->
           Repo.rollback(:booking_limit_reached)
 
         {:error, conflicting_count} ->
           log_conflict(start_time, end_time, conflicting_count)
           Repo.rollback(:time_conflict)
+      end
+    end)
+  end
+
+  defp check_hosts(hosts) do
+    Enum.reduce_while(hosts, :ok, fn %{window: {buffered_start, buffered_end}} = host, :ok ->
+      with :ok <- enforce_booking_limits(host.limit_check),
+           {:ok, :no_conflicts} <-
+             MeetingConflictQueries.count_locked_conflicts(
+               buffered_start,
+               buffered_end,
+               nil,
+               host.user_id
+             ) do
+        {:cont, :ok}
+      else
+        error -> {:halt, error}
       end
     end)
   end

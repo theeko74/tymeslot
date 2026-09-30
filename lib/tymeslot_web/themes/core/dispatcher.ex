@@ -11,6 +11,7 @@ defmodule TymeslotWeb.Themes.Core.Dispatcher do
   alias Tymeslot.Infrastructure.ErrorTracking
   alias Tymeslot.Infrastructure.Logging.LogFormat
   alias TymeslotWeb.Live.Scheduling.OrganizerHelpers
+  alias TymeslotWeb.Live.Scheduling.TeamHelpers
 
   alias TymeslotWeb.Themes.Core.{
     ErrorBoundary,
@@ -30,22 +31,12 @@ defmodule TymeslotWeb.Themes.Core.Dispatcher do
     # Initialize locale dropdown state
     socket = assign(socket, :language_dropdown_open, false)
 
-    # For all routes with username (including meeting management), resolve the username first
-    if params["username"] do
-      socket = OrganizerHelpers.handle_username_resolution(socket, params["username"])
-
-      case socket.assigns do
-        %{organizer_profile: %{} = profile} ->
-          MountHelpers.mount_with_profile(profile, params, session, socket, &delegate_to_theme/3)
-
-        %{error: error} ->
-          {:ok, assign(socket, :error, error)}
-
-        _no_profile ->
-          MountHelpers.mount_without_profile(params, session, socket, &delegate_to_theme/3)
-      end
+    # A team page resolves the team first; its owner stands in as the organiser.
+    if params["team_slug"] do
+      socket = TeamHelpers.handle_team_resolution(socket, params["team_slug"])
+      MountHelpers.mount_team_scheduling_flow(params, session, socket, &delegate_to_theme/3)
     else
-      MountHelpers.mount_without_profile(params, session, socket, &delegate_to_theme/3)
+      mount_for_username(params, session, socket)
     end
   end
 
@@ -156,6 +147,27 @@ defmodule TymeslotWeb.Themes.Core.Dispatcher do
   end
 
   # Private functions
+
+  # For all routes with username (including meeting management), resolve the
+  # username first.
+  defp mount_for_username(params, session, socket) do
+    if params["username"] do
+      socket = OrganizerHelpers.handle_username_resolution(socket, params["username"])
+
+      case socket.assigns do
+        %{organizer_profile: %{} = profile} ->
+          MountHelpers.mount_with_profile(profile, params, session, socket, &delegate_to_theme/3)
+
+        %{error: error} ->
+          {:ok, assign(socket, :error, error)}
+
+        _no_profile ->
+          MountHelpers.mount_without_profile(params, session, socket, &delegate_to_theme/3)
+      end
+    else
+      MountHelpers.mount_without_profile(params, session, socket, &delegate_to_theme/3)
+    end
+  end
 
   defp render_poll_voting_component(assigns) do
     theme_id = assigns[:theme_id] || Registry.default_theme_id()

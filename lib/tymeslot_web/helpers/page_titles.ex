@@ -34,6 +34,7 @@ defmodule TymeslotWeb.Helpers.PageTitles do
   def dashboard_title(:meetings), do: section_title(dgettext("dashboard_common", "Meetings"))
   def dashboard_title(:embed), do: section_title(dgettext("dashboard_common", "Embed & Share"))
   def dashboard_title(:payments), do: section_title(dgettext("dashboard_common", "Payments"))
+  def dashboard_title(:teams), do: section_title(dgettext("dashboard_teams", "Teams"))
 
   def dashboard_title(action) do
     # Check if this action is registered via dynamic extensions

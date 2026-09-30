@@ -11,14 +11,32 @@ defmodule Tymeslot.Meetings.MeetingListQueries do
 
   import Ecto.Query, warn: false
 
+  alias Tymeslot.Auth.UserSchema
+  alias Tymeslot.Meetings.CoHostQueries
+  alias Tymeslot.Meetings.CoHostSchema
   alias Tymeslot.Meetings.MeetingSchema, as: Meeting
   alias Tymeslot.Meetings.MeetingState
   alias Tymeslot.Repo
 
   # Query building helpers
 
-  defp for_user_email(query, email),
-    do: from(m in query, where: m.organizer_email == ^email or m.attendee_email == ^email)
+  # A user's meetings: those they organise or attend, and the team meetings
+  # they co-host, which carry the owner's address as the organiser's.
+  defp for_user_email(query, email) do
+    co_hosted =
+      from(c in CoHostSchema,
+        join: u in UserSchema,
+        on: u.id == c.user_id,
+        where: u.email == ^email,
+        select: c.meeting_id
+      )
+
+    from(m in query,
+      where:
+        m.organizer_email == ^email or m.attendee_email == ^email or
+          m.id in subquery(co_hosted)
+    )
+  end
 
   defp with_status(query, nil), do: query
   defp with_status(query, status), do: from(m in query, where: m.status == ^status)
@@ -237,7 +255,8 @@ defmodule Tymeslot.Meetings.MeetingListQueries do
 
   @doc """
   Returns the organiser's live bookings overlapping the `[from_utc, to_utc)`
-  window, ordered by start time.
+  window, ordered by start time. Meetings the user co-hosts (team bookings)
+  count as theirs.
 
   "Live" means the slot currently occupies the calendar: an occupying status
   and not voided by a pending reschedule request. Past bookings inside the
@@ -248,7 +267,7 @@ defmodule Tymeslot.Meetings.MeetingListQueries do
   def list_for_organizer_in_range(organizer_user_id, %DateTime{} = from_utc, %DateTime{} = to_utc) do
     Meeting
     |> MeetingState.where_slot_live()
-    |> where([m], m.organizer_user_id == ^organizer_user_id)
+    |> CoHostQueries.where_hosted_by(organizer_user_id)
     |> where([m], m.start_time < ^to_utc and m.end_time > ^from_utc)
     |> order_by_start_asc()
     |> Repo.all()

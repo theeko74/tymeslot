@@ -159,10 +159,15 @@ defmodule Tymeslot.Emails.AppointmentBuilder do
     }
   end
 
+  defp reschedule_url(%{team_id: team_id}) when is_integer(team_id), do: nil
+  defp reschedule_url(meeting), do: meeting.reschedule_url || "#"
+
   defp url_details(meeting, organizer_profile) do
     %{
       view_url: meeting.view_url || "#",
-      reschedule_url: meeting.reschedule_url || "#",
+      # Nil for a meeting that cannot be rescheduled (a team meeting), so the
+      # templates leave the action out instead of linking to "#".
+      reschedule_url: reschedule_url(meeting),
       cancel_url: meeting.cancel_url || "#",
       # The host's public booking page, resolved at send time rather than read
       # from the meeting row. Unlike the per-meeting action URLs it is not

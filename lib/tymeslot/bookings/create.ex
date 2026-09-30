@@ -19,16 +19,18 @@ defmodule Tymeslot.Bookings.Create do
 
   alias Tymeslot.Bookings.Create.PaidBooking
   alias Tymeslot.CustomFields
-  alias Tymeslot.Infrastructure.AvailabilityCache
   alias Tymeslot.Infrastructure.ErrorTracking
   alias Tymeslot.Locales
   alias Tymeslot.MeetingPayments
+  alias Tymeslot.Meetings
   alias Tymeslot.Meetings.BookingLimits.Checker
+  alias Tymeslot.Meetings.CoHostQueries
   alias Tymeslot.Meetings.Guests
   alias Tymeslot.Meetings.Scheduling
   alias Tymeslot.MeetingTypes
   alias Tymeslot.Profiles
   alias Tymeslot.Repo
+  alias Tymeslot.Teams
   alias UUID
 
   @type meeting_params :: %{
@@ -163,6 +165,8 @@ defmodule Tymeslot.Bookings.Create do
         date: date,
         organizer_user_id: Map.get(meeting_params, :organizer_user_id),
         meeting_type_id: Map.get(meeting_params, :meeting_type_id),
+        team_id: Map.get(meeting_params, :team_id),
+        team: load_team(Map.get(meeting_params, :team_id)),
         video_integration_id: Map.get(meeting_params, :video_integration_id),
         location_option_id: Map.get(meeting_params, :location_option_id),
         location_phone: Map.get(meeting_params, :location_phone),
@@ -191,6 +195,9 @@ defmodule Tymeslot.Bookings.Create do
 
   defp default_locale, do: Locales.booking_default_locale()
 
+  defp load_team(team_id) when is_integer(team_id), do: Teams.get_team_for_booking(team_id)
+  defp load_team(_team_id), do: nil
+
   defp resolve_meeting_type_for_duration(meeting_params) do
     type_id = Map.get(meeting_params, :meeting_type_id)
     user_id = Map.get(meeting_params, :organizer_user_id)
@@ -215,6 +222,7 @@ defmodule Tymeslot.Bookings.Create do
       user_id ->
         # Meeting type active check
         with :ok <- validate_meeting_type_active(booking_data),
+             :ok <- validate_team_pairing(booking_data),
              :ok <- validate_payments_available(booking_data, user_id) do
           config = scheduling_config(booking_data)
 
@@ -226,13 +234,9 @@ defmodule Tymeslot.Bookings.Create do
                    config
                  ),
                :ok <- validate_slot_on_schedule(booking_data, config),
-               :ok <- validate_booking_limits(booking_data, user_id) do
-            # Optional fresh calendar validation
-            if Keyword.get(opts, :skip_calendar_check, false) do
-              {:ok, :validated}
-            else
-              validate_calendar_availability(booking_data, config)
-            end
+               :ok <- validate_booking_limits(booking_data, user_id),
+               {:ok, :validated} <- maybe_validate_calendar(booking_data, config, opts) do
+            validate_co_hosts(booking_data, opts)
           end
         end
     end
@@ -248,6 +252,76 @@ defmodule Tymeslot.Bookings.Create do
     do: {:error, :meeting_type_inactive}
 
   defp validate_meeting_type_active(%{meeting_type: nil}), do: {:error, :meeting_type_not_found}
+
+  # A team's settings meeting type is booked only through its team page, and a
+  # team page books only its own settings type, owned by its owner. `team_id`
+  # and `meeting_type_id` both arrive with the submit, so each is checked
+  # against the other rather than trusted: without it a forged submit could
+  # book a team's type for its owner alone, or pair a personal type with a
+  # team and drag its members into it.
+  defp validate_team_pairing(%{team_id: nil, meeting_type: %{team_id: team_id}})
+       when is_integer(team_id),
+       do: {:error, :meeting_type_not_found}
+
+  defp validate_team_pairing(%{team_id: nil}), do: :ok
+
+  defp validate_team_pairing(%{
+         team: %{id: team_id, owner_user_id: owner_id},
+         meeting_type: %{team_id: team_id},
+         organizer_user_id: owner_id
+       }),
+       do: :ok
+
+  defp validate_team_pairing(_booking_data), do: {:error, :meeting_type_not_found}
+
+  defp maybe_validate_calendar(booking_data, config, opts) do
+    if Keyword.get(opts, :skip_calendar_check, false) do
+      {:ok, :validated}
+    else
+      validate_calendar_availability(booking_data, config)
+    end
+  end
+
+  # A team booking occupies every member, so every co-host is put through the
+  # same checks as the organiser, against their own rules: their default
+  # schedule (the team's type carries none), its buffer and notice, and their
+  # profile's booking caps. These are what the team page offered them on
+  # (`Tymeslot.Availability.TeamOffer`). The race-safe conflict and limit
+  # checks run again for each of them inside the booking transaction.
+  defp validate_co_hosts(%{team: %{} = team} = booking_data, opts) do
+    team
+    |> Teams.co_host_user_ids()
+    |> Enum.reduce_while({:ok, :validated}, fn user_id, _acc ->
+      case validate_co_host(booking_data, user_id, opts) do
+        {:ok, :validated} = ok -> {:cont, ok}
+        {:error, _reason} = error -> {:halt, error}
+      end
+    end)
+  end
+
+  defp validate_co_hosts(_booking_data, _opts), do: {:ok, :validated}
+
+  defp validate_co_host(booking_data, user_id, opts) do
+    config = Policy.scheduling_config(user_id, nil)
+    member_data = %{booking_data | organizer_user_id: user_id}
+
+    with :ok <-
+           Validation.validate_booking_time(
+             booking_data.start_datetime,
+             booking_data.user_timezone,
+             config
+           ),
+         :ok <- validate_slot_on_schedule(member_data, config),
+         :ok <-
+           Checker.check_booking_allowed(
+             user_id,
+             Profiles.get_profile_settings(user_id),
+             nil,
+             booking_data.start_datetime
+           ) do
+      maybe_validate_calendar(member_data, config, opts)
+    end
+  end
 
   # A direct load of `/:username/:slug/book` performs no step transition, so
   # none of the booking page's own guards on the offered slots ever run for
@@ -362,8 +436,11 @@ defmodule Tymeslot.Bookings.Create do
   defp paid_meeting_type?(_other), do: false
 
   defp run_meeting_transaction(meeting_attrs, booking_data, opts) do
+    co_host_user_ids = Teams.co_host_user_ids(booking_data[:team])
+
     Repo.transaction(fn ->
-      with {:ok, meeting} <- create_meeting(meeting_attrs),
+      with {:ok, meeting} <- create_meeting(meeting_attrs, co_host_user_ids),
+           {:ok, _count} <- CoHostQueries.insert_all_for_meeting(meeting.id, co_host_user_ids),
            {:ok, _guests} <- create_guests(meeting, booking_data),
            {:ok, _result} <- schedule_calendar_job(meeting) do
         # Post-creation side effects (emails/video) are now part of the transaction
@@ -396,8 +473,10 @@ defmodule Tymeslot.Bookings.Create do
   defp guests_allowed?(%{meeting_type: %{allow_guests: true}}), do: true
   defp guests_allowed?(_booking_data), do: false
 
-  defp create_meeting(meeting_attrs) do
-    case Scheduling.create_meeting_with_conflict_check(meeting_attrs) do
+  defp create_meeting(meeting_attrs, co_host_user_ids \\ []) do
+    case Scheduling.create_meeting_with_conflict_check(meeting_attrs,
+           co_host_user_ids: co_host_user_ids
+         ) do
       {:ok, meeting} -> {:ok, meeting}
       {:error, :time_conflict} -> {:error, :time_conflict}
       {:error, {:validation_error, _changeset}} -> {:error, :validation_error}
@@ -410,7 +489,7 @@ defmodule Tymeslot.Bookings.Create do
   end
 
   defp map_transaction_result({:ok, meeting}, _booking_data) do
-    AvailabilityCache.invalidate_for_user(meeting.organizer_user_id)
+    Meetings.invalidate_availability_for(meeting)
     emit_booking_created()
     {:ok, meeting}
   end

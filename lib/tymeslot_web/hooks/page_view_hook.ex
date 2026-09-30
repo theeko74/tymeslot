@@ -46,6 +46,7 @@ defmodule TymeslotWeb.Hooks.PageViewHook do
   alias Tymeslot.Infrastructure.Tasks, warn: false
   alias Tymeslot.MeetingTypes
   alias Tymeslot.Profiles
+  alias Tymeslot.Teams
   alias TymeslotWeb.Helpers.ClientIP
 
   @async_page_view_logging Application.compile_env(
@@ -142,6 +143,18 @@ defmodule TymeslotWeb.Hooks.PageViewHook do
 
       {_profile, _slug} ->
         {nil, nil, build_path(username, slug)}
+    end
+  end
+
+  # A team page's views are the owner's: they are its organiser, and the team's
+  # settings meeting type is theirs.
+  defp resolve_target(%{"team_slug" => slug}) when is_binary(slug) do
+    case Teams.get_team_by_slug(slug) do
+      %{owner_user_id: owner_id} = team ->
+        {owner_id, team.meeting_type && team.meeting_type.id, Teams.public_path(team)}
+
+      nil ->
+        {nil, nil, Teams.public_path(slug)}
     end
   end
 

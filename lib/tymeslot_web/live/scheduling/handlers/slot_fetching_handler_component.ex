@@ -28,7 +28,6 @@ defmodule TymeslotWeb.Live.Scheduling.Handlers.SlotFetchingHandlerComponent do
 
   import Phoenix.Component, only: [assign: 3]
 
-  alias Tymeslot.Availability.Offer
   alias Tymeslot.Infrastructure.Logging.LogFormat
   alias TymeslotWeb.Live.Scheduling.AvailabilityHelpers
 
@@ -78,7 +77,7 @@ defmodule TymeslotWeb.Live.Scheduling.Handlers.SlotFetchingHandlerComponent do
     # date pick — the one case that must reset it, since the open hour would
     # describe a grid that no longer applies — resets it at the point the
     # booker makes that choice, in `handle_schedule_date_selection/2`.
-    case Offer.slots_for_date(request, date, duration_to_fetch) do
+    case AvailabilityHelpers.slots_for_date(socket, request, date, duration_to_fetch) do
       {:ok, slots} ->
         socket =
           socket

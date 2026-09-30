@@ -12,7 +12,7 @@ defmodule Tymeslot.Scheduling.LinkAccessPolicy do
   alias Tymeslot.Integrations.CalendarManagement
 
   @type dashboard_reason :: :no_username | :no_calendar
-  @type public_reason :: :no_calendar
+  @type public_reason :: :no_calendar | :team_member_not_ready
 
   # Determines whether the dashboard should allow viewing/copying the scheduling
   # link. Returns {:ok, :allowed} when allowed, otherwise {:error, reason}.
@@ -115,6 +115,12 @@ defmodule Tymeslot.Scheduling.LinkAccessPolicy do
         dgettext(
           "booking",
           "This scheduling page isn’t available right now. The organizer hasn’t connected a calendar yet."
+        )
+
+      :team_member_not_ready ->
+        dgettext(
+          "booking",
+          "This team page isn’t available right now. A team member hasn’t connected a calendar yet."
         )
 
       _other_reason ->

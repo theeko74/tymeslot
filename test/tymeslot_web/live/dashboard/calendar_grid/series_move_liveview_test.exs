@@ -322,7 +322,9 @@ defmodule TymeslotWeb.Dashboard.CalendarGrid.SeriesMoveLiveViewTest do
                "changed on their own go back to the series' usual pattern"
              )
 
-      refute render(lv) =~ "Teams"
+      # Scoped to the notes: the dashboard sidebar has a "Teams" section of its
+      # own, unrelated to the Microsoft Teams note this is about.
+      refute has_element?(lv, "#series-move-notes", "Teams")
     end
   end
 

@@ -1,0 +1,47 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: cs\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+
+#: lib/tymeslot/emails/templates/team_member_added.ex
+#, elixir-autogen, elixir-format
+msgid "%{owner} added you to %{team}"
+msgstr "%{owner}: nové členství v týmu %{team}"
+
+#: lib/tymeslot/emails/templates/team_member_added.ex
+#, elixir-autogen, elixir-format
+msgid "%{owner} added you to the team %{team}. Its booking page now offers only the times every member is free, and meetings booked there will appear on your dashboard."
+msgstr "%{owner} vás přidává do týmu %{team}. Jeho rezervační stránka teď nabízí jen časy, kdy mají volno všichni členové, a schůzky rezervované přes ni se zobrazí na vaší nástěnce."
+
+#: lib/tymeslot/emails/templates/team_member_added.ex
+#, elixir-autogen, elixir-format
+msgid "Team"
+msgstr "Tým"
+
+#: lib/tymeslot/emails/templates/team_member_added.ex
+#, elixir-autogen, elixir-format
+msgid "View my teams"
+msgstr "Zobrazit moje týmy"
+
+#: lib/tymeslot/emails/templates/team_member_added.ex
+#, elixir-autogen, elixir-format
+msgid "View my teams:"
+msgstr "Zobrazit moje týmy:"
+
+#: lib/tymeslot/emails/templates/team_member_added.ex
+#, elixir-autogen, elixir-format
+msgid "You can leave the team at any time from your dashboard."
+msgstr "Tým můžete kdykoli opustit na své nástěnce."
+
+#: lib/tymeslot/emails/templates/team_member_added.ex
+#, elixir-autogen, elixir-format
+msgid "You joined %{team}"
+msgstr "Nové členství v týmu %{team}"

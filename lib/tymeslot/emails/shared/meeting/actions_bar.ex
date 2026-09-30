@@ -26,8 +26,12 @@ defmodule Tymeslot.Emails.Shared.Meeting.ActionsBar do
   def meeting_actions_bar(intent, actions) when is_atom(intent) and is_list(actions) do
     separator = ~s(<span style="color: #{Styles.ink_whisper()}; padding: 0 12px;">·</span>)
 
+    # An action with no URL is one the meeting does not offer (a team meeting
+    # cannot be rescheduled), so it is left out rather than linked to nowhere.
     links =
-      Enum.map_join(actions, separator, fn action ->
+      actions
+      |> Enum.reject(&is_nil(Map.get(&1, :url)))
+      |> Enum.map_join(separator, fn action ->
         safe_text = Sanitise.sanitize_for_email(action.text)
         safe_url = Sanitise.sanitize_url(action.url)
         color = action_link_color(intent, Map.get(action, :style, :primary))

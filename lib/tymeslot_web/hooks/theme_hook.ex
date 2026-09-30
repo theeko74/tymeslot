@@ -7,6 +7,7 @@ defmodule TymeslotWeb.Hooks.ThemeHook do
   import Phoenix.Component
 
   alias Tymeslot.Profiles
+  alias Tymeslot.Teams
 
   @spec on_mount(atom(), map(), map(), Phoenix.LiveView.Socket.t()) ::
           {:cont, Phoenix.LiveView.Socket.t()}
@@ -24,6 +25,10 @@ defmodule TymeslotWeb.Hooks.ThemeHook do
       # Check if theme_id is in params (debug routes)
       params["theme_id"] ->
         params["theme_id"]
+
+      # A team page wears its owner's theme
+      params["team_slug"] ->
+        Teams.owner_booking_theme(params["team_slug"]) || "1"
 
       # For username-based routes, resolve from profile
       params["username"] ->

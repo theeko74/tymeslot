@@ -49,4 +49,14 @@ defmodule TymeslotWeb.Themes.Shared.BookingLabels do
   def organizer_display_name(organizer_profile, username_context) do
     Profiles.display_name(organizer_profile) || username_context
   end
+
+  @doc """
+  Who the booker is booking with, from the page's assigns: the team's name on
+  a team page, the organiser's display name otherwise.
+  """
+  @spec host_display_name(map()) :: String.t() | nil
+  def host_display_name(%{team: %{name: name}}) when is_binary(name), do: name
+
+  def host_display_name(assigns),
+    do: organizer_display_name(assigns[:organizer_profile], assigns[:username_context])
 end

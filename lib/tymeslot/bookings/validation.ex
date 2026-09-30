@@ -139,9 +139,17 @@ defmodule Tymeslot.Bookings.Validation do
           {:ok, Ecto.Schema.t()} | {:error, String.t()}
   def validate_meeting_for_reschedule(meeting) do
     cond do
-      meeting.status == "cancelled" -> {:error, "Cannot reschedule a cancelled meeting"}
-      meeting.status == "completed" -> {:error, "Cannot reschedule a completed meeting"}
-      true -> {:ok, meeting}
+      is_integer(Map.get(meeting, :team_id)) ->
+        {:error, "A team meeting cannot be rescheduled. Cancel it and book a new time instead."}
+
+      meeting.status == "cancelled" ->
+        {:error, "Cannot reschedule a cancelled meeting"}
+
+      meeting.status == "completed" ->
+        {:error, "Cannot reschedule a completed meeting"}
+
+      true ->
+        {:ok, meeting}
     end
   end
 

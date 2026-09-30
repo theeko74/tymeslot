@@ -136,7 +136,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
                             do: LocalizationHelpers.format_duration(@meeting_type.duration_minutes),
                             else: Duration.format(@duration)
                           ),
-                        name: get_organizer_name(@organizer_profile, @username_context)
+                        name: BookingLabels.host_display_name(assigns)
                       )}
                     <% else %>
                       {dgettext("booking", "You're booking a %{duration} meeting",
@@ -240,7 +240,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
 
                   <ApprovalNotice.block
                     :if={Approval.required?(@meeting_type)}
-                    organizer_name={get_organizer_name(@organizer_profile, @username_context)}
+                    organizer_name={BookingLabels.host_display_name(assigns)}
                     payment_required={@meeting_type.payment_required}
                     stage={:before}
                   />
@@ -298,10 +298,6 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
   end
 
   defp guests_allowed?(assigns), do: GuestBooking.guests_allowed?(assigns)
-
-  defp get_organizer_name(organizer_profile, username_context) do
-    BookingLabels.organizer_display_name(organizer_profile, username_context)
-  end
 
   defp get_submit_title(submitting, form) do
     cond do

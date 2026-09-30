@@ -1,0 +1,252 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: uk\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100 != 11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10||n%100>=20) ? 1 : 2);\n"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "%{count} member"
+msgid_plural "%{count} members"
+msgstr[0] "%{count} учасник"
+msgstr[1] "%{count} учасники"
+msgstr[2] "%{count} учасників"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "%{minutes} min"
+msgstr "%{minutes} хв"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Add"
+msgstr "Додати"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Add a member by email"
+msgstr "Додати учасника за електронною адресою"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Book meetings with several people at once. A team page only offers the times when every member is free."
+msgstr "Бронюйте зустрічі одразу з кількома людьми. Сторінка команди пропонує лише той час, коли вільні всі учасники."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Cancel"
+msgstr "Скасувати"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Close"
+msgstr "Закрити"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Copy team link"
+msgstr "Копіювати посилання команди"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Delete"
+msgstr "Видалити"
+
+#: lib/tymeslot_web/live/dashboard/teams/delete_team_modal.ex
+#, elixir-autogen, elixir-format
+msgid "Delete team"
+msgstr "Видалити команду"
+
+#: lib/tymeslot_web/live/dashboard/teams/delete_team_modal.ex
+#, elixir-autogen, elixir-format
+msgid "Delete this team?"
+msgstr "Видалити цю команду?"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Description (optional)"
+msgstr "Опис (необов'язково)"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Edit"
+msgstr "Редагувати"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Edit team"
+msgstr "Редагувати команду"
+
+#: lib/tymeslot_web/live/dashboard/teams/delete_team_modal.ex
+#, elixir-autogen, elixir-format
+msgid "Keep team"
+msgstr "Залишити команду"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Leave team"
+msgstr "Вийти з команди"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Manage"
+msgstr "Керувати"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Meeting duration (minutes)"
+msgstr "Тривалість зустрічі (хвилини)"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Member"
+msgstr "Учасник"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Member added."
+msgstr "Учасника додано."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Member removed."
+msgstr "Учасника вилучено."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "New team"
+msgstr "Нова команда"
+
+#: lib/tymeslot/teams.ex
+#, elixir-autogen, elixir-format
+msgid "No Tymeslot account uses this email address."
+msgstr "Жоден обліковий запис Tymeslot не використовує цю електронну адресу."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "No calendar connected: the team page is unavailable until this member connects one."
+msgstr "Календар не під'єднано: сторінка команди недоступна, доки цей учасник не під'єднає календар."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Owner"
+msgstr "Власник"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Page address"
+msgstr "Адреса сторінки"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Remove"
+msgstr "Вилучити"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Save team"
+msgstr "Зберегти команду"
+
+#: lib/tymeslot/teams.ex
+#, elixir-autogen, elixir-format
+msgid "Something went wrong. Please try again."
+msgstr "Щось пішло не так. Спробуйте ще раз."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Team deleted."
+msgstr "Команду видалено."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Team link copied to clipboard!"
+msgstr "Посилання команди скопійовано в буфер обміну!"
+
+#: lib/tymeslot_web/components/dashboard/meetings/meeting_list_components.ex
+#, elixir-autogen, elixir-format
+msgid "Team meeting"
+msgstr "Зустріч команди"
+
+#: lib/tymeslot_web/components/dashboard/meetings/meeting_list_components.ex
+#, elixir-autogen, elixir-format
+msgid "Team meeting · co-host"
+msgstr "Зустріч команди · співорганізатор"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Team name"
+msgstr "Назва команди"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Team saved."
+msgstr "Команду збережено."
+
+#: lib/tymeslot_web/components/dashboard_sidebar.ex
+#: lib/tymeslot_web/helpers/page_titles.ex
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Teams"
+msgstr "Команди"
+
+#: lib/tymeslot_web/live/dashboard/teams/delete_team_modal.ex
+#, elixir-autogen, elixir-format
+msgid "The booking page of “%{name}” will stop working for everyone holding its link. Meetings already booked are kept. This cannot be undone."
+msgstr "Сторінка бронювання «%{name}» перестане працювати для всіх, хто має посилання на неї. Уже заброньовані зустрічі збережуться. Цю дію неможливо скасувати."
+
+#: lib/tymeslot/teams.ex
+#, elixir-autogen, elixir-format
+msgid "The owner cannot leave the team. Delete it instead."
+msgstr "Власник не може вийти з команди. Натомість видаліть її."
+
+#: lib/tymeslot/teams.ex
+#, elixir-autogen, elixir-format
+msgid "This person is already a member of the team."
+msgstr "Ця людина вже є учасником команди."
+
+#: lib/tymeslot/teams.ex
+#, elixir-autogen, elixir-format
+msgid "This team no longer exists."
+msgstr "Цієї команди більше не існує."
+
+#: lib/tymeslot/teams.ex
+#, elixir-autogen, elixir-format
+msgid "You already have a meeting type with this name. Choose another team name."
+msgstr "У вас уже є тип зустрічі з такою назвою. Оберіть іншу назву команди."
+
+#: lib/tymeslot/teams.ex
+#, elixir-autogen, elixir-format
+msgid "You are already in this team."
+msgstr "Ви вже в цій команді."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "You are not in any team yet. Create one and add colleagues who have a Tymeslot account."
+msgstr "Ви ще не входите до жодної команди. Створіть команду й додайте колег, які мають обліковий запис Tymeslot."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "You left the team."
+msgstr "Ви вийшли з команди."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "colleague@example.com"
+msgstr "kolega@example.com"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "e.g., Sales team"
+msgstr "напр., Відділ продажів"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "owner"
+msgstr "власник"

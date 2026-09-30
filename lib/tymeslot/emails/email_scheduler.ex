@@ -13,6 +13,7 @@ defmodule Tymeslot.Emails.EmailScheduler do
   - `AccountScheduler` — email change verification and confirmations
   - `CalendarScheduler` — calendar invitations and event update notifications
   - `IntegrationScheduler` — integration health notifications and admin alerts
+  - `TeamScheduler` — the email telling a user they were added to a team
 
   Callers should reference this module directly — no delegation functions exist
   on `Tymeslot.Workers.EmailWorker`.
@@ -24,6 +25,7 @@ defmodule Tymeslot.Emails.EmailScheduler do
   alias Tymeslot.Emails.EmailScheduler.CalendarScheduler
   alias Tymeslot.Emails.EmailScheduler.IntegrationScheduler
   alias Tymeslot.Emails.EmailScheduler.MeetingScheduler
+  alias Tymeslot.Emails.EmailScheduler.TeamScheduler
 
   # Meeting emails
 
@@ -84,6 +86,12 @@ defmodule Tymeslot.Emails.EmailScheduler do
     to: IntegrationScheduler
 
   defdelegate schedule_admin_alert_digest(recipient, digest), to: IntegrationScheduler
+
+  # Team emails
+
+  defdelegate schedule_team_member_added(team_id, user_id),
+    to: TeamScheduler,
+    as: :schedule_member_added
 
   # --- Changeset validation (used by EmailWorker's Oban callback) ---
 
@@ -153,7 +161,8 @@ defmodule Tymeslot.Emails.EmailScheduler do
       "metadata",
       "alert_hash"
     ],
-    "send_admin_alert_digest" => ["recipient", "entries"]
+    "send_admin_alert_digest" => ["recipient", "entries"],
+    "send_team_member_added" => ["team_id", "user_id"]
   }
 
   @doc """

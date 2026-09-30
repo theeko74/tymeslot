@@ -9,7 +9,7 @@ defmodule TymeslotWeb.Live.Scheduling.AvailabilityHelpers do
   """
 
   alias Phoenix.Component
-  alias Tymeslot.Availability.{Calculate, Offer, Schedules}
+  alias Tymeslot.Availability.{Calculate, Offer, Schedules, TeamOffer}
   alias Tymeslot.Demo
   alias Tymeslot.Infrastructure.Tasks
 
@@ -34,6 +34,30 @@ defmodule TymeslotWeb.Live.Scheduling.AvailabilityHelpers do
       demo_mode?: Demo.demo_mode?(socket),
       debug_calendar_module: socket.private[:debug_calendar_module]
     }
+  end
+
+  @doc """
+  The times free on `date` for the page's hosts: the organiser, or on a team
+  page every member (`Tymeslot.Availability.TeamOffer`).
+  """
+  @spec slots_for_date(Phoenix.LiveView.Socket.t(), Offer.request(), String.t(), pos_integer()) ::
+          {:ok, [String.t()]} | {:error, any()}
+  def slots_for_date(socket, request, date, duration_minutes) do
+    case team_member_profiles(socket) do
+      nil ->
+        Offer.slots_for_date(request, date, duration_minutes)
+
+      profiles ->
+        profiles
+        |> TeamOffer.requests(request)
+        |> TeamOffer.slots_for_date(date, duration_minutes)
+    end
+  end
+
+  # The members a team page offers the shared free time of, or nil on a
+  # personal page.
+  defp team_member_profiles(socket) do
+    if socket.assigns[:team], do: socket.assigns[:team_member_profiles] || []
   end
 
   @doc """
@@ -146,7 +170,15 @@ defmodule TymeslotWeb.Live.Scheduling.AvailabilityHelpers do
     {start_date, end_date} =
       Calculate.display_range(socket.assigns.current_year, socket.assigns.current_month)
 
-    fetch = fn -> Offer.days_in_range(request, start_date, end_date, duration_minutes) end
+    fetch =
+      case team_member_profiles(socket) do
+        nil ->
+          fn -> Offer.days_in_range(request, start_date, end_date, duration_minutes) end
+
+        profiles ->
+          requests = TeamOffer.requests(profiles, request)
+          fn -> TeamOffer.days_in_range(requests, start_date, end_date, duration_minutes) end
+      end
 
     if async_fetch?() do
       task = Tasks.async(fetch)

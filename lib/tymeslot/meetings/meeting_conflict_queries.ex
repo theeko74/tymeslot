@@ -5,6 +5,7 @@ defmodule Tymeslot.Meetings.MeetingConflictQueries do
 
   import Ecto.Query, warn: false
 
+  alias Tymeslot.Meetings.CoHostQueries
   alias Tymeslot.Meetings.MeetingSchema, as: Meeting
   alias Tymeslot.Meetings.MeetingState
   alias Tymeslot.Repo
@@ -25,7 +26,7 @@ defmodule Tymeslot.Meetings.MeetingConflictQueries do
 
     base =
       if organizer_user_id do
-        from(m in base, where: m.organizer_user_id == ^organizer_user_id)
+        CoHostQueries.where_hosted_by(base, organizer_user_id)
       else
         base
       end

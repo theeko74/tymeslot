@@ -25,6 +25,7 @@ defmodule TymeslotWeb.Dashboard.ComponentDispatch do
   alias TymeslotWeb.Dashboard.ProfileSettingsComponent
   alias TymeslotWeb.Dashboard.ScheduleSettingsComponent
   alias TymeslotWeb.Dashboard.ServiceSettingsComponent
+  alias TymeslotWeb.Dashboard.Teams.TeamsComponent
   alias TymeslotWeb.Dashboard.ThemeSettingsComponent
   alias TymeslotWeb.Dashboard.VideoSettingsComponent
   alias TymeslotWeb.Live.Dashboard.EmbedSettingsComponent
@@ -55,6 +56,7 @@ defmodule TymeslotWeb.Dashboard.ComponentDispatch do
   def component_for_action(:theme_customization, _components), do: ThemeSettingsComponent
   def component_for_action(:meetings, _components), do: BookingsManagementComponent
   def component_for_action(:polls, _components), do: PollsComponent
+  def component_for_action(:teams, _components), do: TeamsComponent
   def component_for_action(:embed, _components), do: EmbedSettingsComponent
   def component_for_action(:payments, _components), do: PaymentsSettingsComponent
 

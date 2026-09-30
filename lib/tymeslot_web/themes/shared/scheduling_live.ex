@@ -440,12 +440,18 @@ defmodule TymeslotWeb.Themes.Shared.SchedulingLive do
             # The flow restarts here without navigating, so the reschedule
             # context has to be dropped explicitly or the next submit moves the
             # meeting that was just moved. See `ReschedulePin.abandon/1`.
-            socket =
-              socket
-              |> GuestBooking.assign_defaults()
-              |> ReschedulePin.abandon()
+            # A team page is never a reschedule, and has no overview to restart
+            # from; abandoning would re-resolve the owner's personal page onto it.
+            if socket.assigns[:team] do
+              {:noreply, transition_to(GuestBooking.assign_defaults(socket), :schedule, %{})}
+            else
+              socket =
+                socket
+                |> GuestBooking.assign_defaults()
+                |> ReschedulePin.abandon()
 
-            {:noreply, transition_to(socket, :overview, %{})}
+              {:noreply, transition_to(socket, :overview, %{})}
+            end
 
           _other ->
             {:noreply, socket}

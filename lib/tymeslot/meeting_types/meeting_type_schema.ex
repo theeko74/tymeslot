@@ -43,6 +43,7 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeSchema do
           video_integration_id: integer() | nil,
           calendar_integration_id: integer() | nil,
           target_calendar_id: String.t() | nil,
+          team_id: integer() | nil,
           inserted_at: DateTime.t() | nil,
           updated_at: DateTime.t() | nil
         }
@@ -83,6 +84,12 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeSchema do
       :availability_schedule,
       Tymeslot.Availability.AvailabilityScheduleSchema
     )
+
+    # Set on the one row that holds a team's booking settings (see
+    # `Tymeslot.Teams`). Such a row belongs to the team's owner so the booking
+    # pipeline can read it like any other type, but it is never one of the
+    # owner's own meeting types: every personal listing filters it out.
+    belongs_to(:team, Tymeslot.Teams.TeamSchema)
 
     embeds_many(:custom_fields, FieldDefinition, on_replace: :delete)
     embeds_many(:attachments, MeetingTypeAttachment, on_replace: :delete)
@@ -171,7 +178,8 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeSchema do
       :is_archived,
       :max_bookings_per_day,
       :max_bookings_per_week,
-      :max_bookings_per_month
+      :max_bookings_per_month,
+      :team_id
     ])
     |> cast_embed(:custom_fields, with: &FieldDefinition.changeset/2)
     |> cast_embed(:attachments, with: &MeetingTypeAttachment.changeset/2)
@@ -204,6 +212,7 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeSchema do
     |> foreign_key_constraint(:video_integration_id)
     |> foreign_key_constraint(:calendar_integration_id)
     |> foreign_key_constraint(:availability_schedule_id)
+    |> foreign_key_constraint(:team_id)
   end
 
   @doc """

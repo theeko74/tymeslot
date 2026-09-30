@@ -167,6 +167,11 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
                 <span>{dgettext("dashboard_common", "Polls")}</span>
               </.nav_link>
 
+              <.nav_link patch={~p"/dashboard/teams"} current={@current_action} action={:teams}>
+                <.icon name="hero-user-group" class="w-5 h-5" />
+                <span>{dgettext("dashboard_teams", "Teams")}</span>
+              </.nav_link>
+
               <.nav_link
                 patch={~p"/dashboard/theme"}
                 current={

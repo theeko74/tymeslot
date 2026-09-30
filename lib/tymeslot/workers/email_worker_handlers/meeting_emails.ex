@@ -13,6 +13,7 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers.MeetingEmails do
   alias Tymeslot.Meetings.MeetingQueries
   alias Tymeslot.Meetings.MeetingState
   alias Tymeslot.Notifications.GuestNotifications
+  alias Tymeslot.Notifications.TeamNotifications
   alias Tymeslot.Utils.ReminderUtils
   alias Tymeslot.Workers.DeliveryClaims
   alias Tymeslot.Workers.EmailWorkerHandlers.DeliveryOutcome
@@ -166,6 +167,8 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers.MeetingEmails do
         appointment_details,
         &DeliveryClaims.once(job_id, &1, &2)
       )
+
+      TeamNotifications.notify_cancelled(meeting, &DeliveryClaims.once(job_id, &1, &2))
     end
 
     result
@@ -211,6 +214,7 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers.MeetingEmails do
       # stamped on its own, so a retry that finds both participants already
       # stamped still has to invite whoever the previous attempt missed.
       invite_missed_guests(meeting)
+      TeamNotifications.notify_confirmed(meeting)
 
       :ok
     else
@@ -283,6 +287,10 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers.MeetingEmails do
       # send, so only unsent guests are ever re-attempted. Failures are logged
       # but never block the organiser/attendee confirmation result.
       send_guest_confirmations(meeting, appointment_details, email_service)
+
+      # Co-hosts of a team meeting get the organiser's confirmation, each
+      # stamped on their own row, so a retry reaches only the ones missed.
+      TeamNotifications.notify_confirmed(meeting)
 
       process_email_results(meeting, organizer_result, attendee_result, :confirmation)
     end

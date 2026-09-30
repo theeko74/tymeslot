@@ -364,6 +364,7 @@ defmodule TymeslotWeb.Router do
       live "/dashboard/theme/customize/:theme_id", DashboardLive, :theme_customization
       live "/dashboard/meetings", DashboardLive, :meetings
       live "/dashboard/polls", DashboardLive, :polls
+      live "/dashboard/teams", DashboardLive, :teams
       live "/dashboard/embed", DashboardLive, :embed
       live "/dashboard/analytics", Dashboard.AnalyticsLive, :index
       live "/dashboard/payments", DashboardLive, :payments
@@ -518,6 +519,13 @@ defmodule TymeslotWeb.Router do
         TymeslotWeb.Hooks.ClientInfoHook,
         TymeslotWeb.Hooks.PageViewHook
       ] do
+      # Team pages: the times every member of a team is free. Declared before
+      # `/:username`, which would otherwise take "team" as a username
+      # (reserved in `Tymeslot.Profiles.ReservedPaths`).
+      live "/team/:team_slug", Themes.Core.Dispatcher, :schedule
+      live "/team/:team_slug/book", Themes.Core.Dispatcher, :booking
+      live "/team/:team_slug/thank-you", Themes.Core.Dispatcher, :confirmation
+
       live "/:username", Themes.Core.Dispatcher, :overview
       live "/:username/thank-you", Themes.Core.Dispatcher, :confirmation
       live "/:username/:slug", Themes.Core.Dispatcher, :schedule

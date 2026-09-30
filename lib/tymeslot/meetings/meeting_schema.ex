@@ -32,6 +32,7 @@ defmodule Tymeslot.Meetings.MeetingSchema do
           organizer_email: String.t() | nil,
           organizer_title: String.t() | nil,
           organizer_user_id: integer() | nil,
+          team_id: integer() | nil,
           calendar_integration_id: integer() | nil,
           calendar_path: String.t() | nil,
           attendee_name: String.t() | nil,
@@ -265,6 +266,15 @@ defmodule Tymeslot.Meetings.MeetingSchema do
       on_delete: :delete_all
     )
 
+    # Set when the meeting was booked on a team page. The organiser is then
+    # the team's owner, and every other member at booking time is a co-host.
+    belongs_to(:team, Tymeslot.Teams.TeamSchema, type: :id)
+
+    has_many(:co_hosts, Tymeslot.Meetings.CoHostSchema,
+      foreign_key: :meeting_id,
+      on_delete: :delete_all
+    )
+
     # Source attribution
     field(:utm_source, :string)
     field(:utm_medium, :string)
@@ -302,6 +312,7 @@ defmodule Tymeslot.Meetings.MeetingSchema do
     :meeting_type_id,
     :organizer_title,
     :organizer_user_id,
+    :team_id,
     :calendar_integration_id,
     :video_integration_id,
     :calendar_path,

@@ -165,6 +165,15 @@ defmodule TymeslotWeb.Components.Dashboard.Meetings.MeetingListComponents do
             </span>
             <MeetingStatusBadge.status_badges meeting={@meeting} />
             <span
+              :if={@meeting.team_id}
+              class="inline-flex items-center gap-1.5 px-3 py-1 bg-tymeslot-50 text-tymeslot-700 text-token-xs font-black uppercase tracking-wider rounded-full border border-tymeslot-100 shadow-sm"
+            >
+              <CoreComponents.icon name="hero-user-group" class="w-3.5 h-3.5" />
+              {if co_hosted?(@meeting, @profile),
+                do: dgettext("dashboard_teams", "Team meeting · co-host"),
+                else: dgettext("dashboard_teams", "Team meeting")}
+            </span>
+            <span
               :if={@meeting.meeting_url}
               class="inline-flex items-center gap-1.5 px-3 py-1 bg-cyan-50 text-cyan-700 text-token-xs font-black uppercase tracking-wider rounded-full border border-cyan-100 shadow-sm"
             >
@@ -301,7 +310,10 @@ defmodule TymeslotWeb.Components.Dashboard.Meetings.MeetingListComponents do
           <RemindersSection.reminders_section meeting={@meeting} />
         </div>
 
+        <%!-- A co-host sees a team meeting but does not manage it: every
+             action is the organiser's (the team's owner). --%>
         <MeetingActions.action_bar
+          :if={!co_hosted?(@meeting, @profile)}
           meeting={@meeting}
           target={@target}
           answering_request={@answering_request}
@@ -311,6 +323,14 @@ defmodule TymeslotWeb.Components.Dashboard.Meetings.MeetingListComponents do
     </div>
     """
   end
+
+  # Whether the viewer sees `meeting` as a co-host of a team meeting rather
+  # than as its organiser.
+  defp co_hosted?(%{team_id: team_id, organizer_user_id: organizer_id}, %{user_id: viewer_id})
+       when is_integer(team_id),
+       do: organizer_id != viewer_id
+
+  defp co_hosted?(_meeting, _profile), do: false
 
   attr :has_more, :boolean, required: true
   attr :loading_more, :boolean, required: true

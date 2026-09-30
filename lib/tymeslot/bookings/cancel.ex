@@ -8,7 +8,6 @@ defmodule Tymeslot.Bookings.Cancel do
 
   alias Tymeslot.Bookings.Policy
   alias Tymeslot.Clock
-  alias Tymeslot.Infrastructure.AvailabilityCache
   alias Tymeslot.Infrastructure.Logging.LogFormat
   alias Tymeslot.Meetings
   alias Tymeslot.Meetings.Approval
@@ -238,7 +237,7 @@ defmodule Tymeslot.Bookings.Cancel do
           meeting_id: meeting.id
         )
 
-        AvailabilityCache.invalidate_for_user(updated_meeting.organizer_user_id)
+        Meetings.invalidate_availability_for(updated_meeting)
         {:ok, updated_meeting}
 
       {:error, changeset} ->
@@ -264,7 +263,7 @@ defmodule Tymeslot.Bookings.Cancel do
           meeting_id: meeting.id
         )
 
-        AvailabilityCache.invalidate_for_user(updated_meeting.organizer_user_id)
+        Meetings.invalidate_availability_for(updated_meeting)
         {:ok, updated_meeting}
 
       {:error, changeset} ->

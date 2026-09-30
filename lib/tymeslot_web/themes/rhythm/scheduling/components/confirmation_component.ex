@@ -128,7 +128,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ConfirmationComponent 
                       </div>
                       <div class="ticket-info">
                         <span class="ticket-value">
-                          {Profiles.display_name(@organizer_profile)}
+                          {host_name(assigns)}
                         </span>
                         <span class="ticket-sublabel">{dgettext("booking", "Appointment host")}</span>
                       </div>
@@ -236,10 +236,12 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ConfirmationComponent 
   end
 
   # Helper functions
-  defp get_organizer_text(nil), do: ""
+  # The team's name on a team page, the organiser's otherwise.
+  defp host_name(%{team: %{name: name}}), do: name
+  defp host_name(assigns), do: Profiles.display_name(assigns[:organizer_profile])
 
-  defp get_organizer_text(organizer_profile) do
-    case Profiles.display_name(organizer_profile) do
+  defp get_organizer_text(assigns) do
+    case host_name(assigns) do
       nil -> ""
       name -> dgettext("booking", "with %{name}", name: name)
     end
@@ -263,7 +265,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ConfirmationComponent 
     else
       dgettext("booking", "%{name}, your meeting %{organizer} is confirmed",
         name: assigns[:name],
-        organizer: get_organizer_text(assigns[:organizer_profile])
+        organizer: get_organizer_text(assigns)
       )
     end
   end

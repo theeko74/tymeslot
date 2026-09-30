@@ -14,6 +14,7 @@ defmodule TymeslotWeb.Themes.Core.MountHelpers do
   alias Tymeslot.Polls
   alias Tymeslot.Profiles
   alias Tymeslot.Scheduling.LinkAccessPolicy
+  alias Tymeslot.Teams
   alias Tymeslot.Timezones
   alias TymeslotWeb.Live.Scheduling.OrganizerHelpers
   alias TymeslotWeb.Themes.Core.{Context, MeetingManagement, PollVoting, Registry}
@@ -79,6 +80,32 @@ defmodule TymeslotWeb.Themes.Core.MountHelpers do
   defp mount_scheduling_flow(profile, params, session, socket, delegate_fn) do
     case LinkAccessPolicy.check_public_readiness(profile) do
       {:ok, :ready} ->
+        case prepare_theme_context(profile, params, socket) do
+          {:ok, context, socket} ->
+            delegate_fn.(context.theme_id, :mount, [params, session, socket])
+
+          {:error, error_socket} ->
+            {:ok, error_socket}
+        end
+
+      {:error, reason} ->
+        mount_readiness_error(profile, params, socket, reason)
+    end
+  end
+
+  @doc """
+  Mounts a team page (`/team/:team_slug`) once `TeamHelpers` has resolved the
+  team onto the socket. The page is refused, in the owner's branding, while
+  any member's calendar cannot be read: such a member would be offered times
+  they are actually busy.
+  """
+  @spec mount_team_scheduling_flow(map(), map(), Phoenix.LiveView.Socket.t(), function()) ::
+          {:ok, Phoenix.LiveView.Socket.t()}
+  def mount_team_scheduling_flow(params, session, socket, delegate_fn) do
+    %{team: team, organizer_profile: profile} = socket.assigns
+
+    case Teams.public_readiness(team) do
+      :ok ->
         case prepare_theme_context(profile, params, socket) do
           {:ok, context, socket} ->
             delegate_fn.(context.theme_id, :mount, [params, session, socket])

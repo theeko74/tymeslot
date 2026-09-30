@@ -536,6 +536,7 @@ msgid "Schedule with"
 msgstr "Termin mit"
 
 #: lib/tymeslot/profiles/organizer_context.ex
+#: lib/tymeslot_web/live/scheduling/team_helpers.ex
 #: lib/tymeslot_web/themes/shared/booking_text.ex
 #, elixir-autogen, elixir-format
 msgid "Schedule with %{name}"
@@ -1419,3 +1420,13 @@ msgstr "Welcher Videodienst?"
 #, elixir-autogen, elixir-format
 msgid "Your phone number"
 msgstr "Ihre Telefonnummer"
+
+#: lib/tymeslot/scheduling/link_access_policy.ex
+#, elixir-autogen, elixir-format
+msgid "This team page isn’t available right now. A team member hasn’t connected a calendar yet."
+msgstr "Diese Teamseite ist derzeit nicht verfügbar. Ein Teammitglied hat noch keinen Kalender verbunden."
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/schedule_component.ex
+#, elixir-autogen, elixir-format
+msgid "With %{team}: %{members}"
+msgstr "Mit %{team}: %{members}"

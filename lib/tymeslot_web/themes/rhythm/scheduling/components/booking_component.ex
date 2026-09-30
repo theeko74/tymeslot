@@ -115,6 +115,8 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
                 organizer_profile={@organizer_profile}
                 meeting_type={@meeting_type}
                 selected_duration={@duration}
+                team={assigns[:team]}
+                team_member_profiles={assigns[:team_member_profiles] || []}
               />
             </div>
 
@@ -232,7 +234,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
 
             <ApprovalNotice.block
               :if={Approval.required?(@meeting_type)}
-              organizer_name={organizer_display_name(@organizer_profile, @username_context)}
+              organizer_name={BookingLabels.host_display_name(assigns)}
               payment_required={@meeting_type.payment_required}
               stage={:before}
             />
@@ -303,9 +305,5 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
       meeting_type,
       dgettext("booking", "Submit")
     )
-  end
-
-  defp organizer_display_name(organizer_profile, username_context) do
-    BookingLabels.organizer_display_name(organizer_profile, username_context)
   end
 end

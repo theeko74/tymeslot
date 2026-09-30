@@ -53,7 +53,7 @@ defmodule CredoChecks.GettextDomainBoundary do
       domains: ~w(
         booking booking_manage booking_polls embed errors common
         emails emails_account emails_booking emails_booking_requests
-        emails_integrations emails_polls
+        emails_integrations emails_polls emails_teams
         auth account onboarding onboarding_wizard
         dashboard_common
         dashboard_home dashboard_meeting_types dashboard_meeting_form
@@ -61,7 +61,7 @@ defmodule CredoChecks.GettextDomainBoundary do
         dashboard_calendar_events dashboard_integrations dashboard_calendar_providers
         dashboard_automation dashboard_automation_chat dashboard_appearance
         dashboard_embed dashboard_payments dashboard_bookings dashboard_profile
-        dashboard_analytics dashboard_admin dashboard_video
+        dashboard_analytics dashboard_admin dashboard_video dashboard_teams
       )
     ],
     explanations: [

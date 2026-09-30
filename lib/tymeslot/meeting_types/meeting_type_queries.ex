@@ -6,6 +6,13 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeQueries do
   alias Tymeslot.MeetingTypes.MeetingTypeSchema
   alias Tymeslot.Repo
 
+  # The listings below are a user's *own* meeting types. A team's booking
+  # settings are stored as a meeting type owned by the team's owner and flagged
+  # with `team_id` (see `Tymeslot.Teams`); it is reachable only through the
+  # team page, so every personal listing leaves it out. Lookups by id
+  # (`get_meeting_type/2`) keep it, because the booking submit re-reads the
+  # type that way.
+
   @doc """
   Gets all active meeting types for a user, ordered by sort_order.
   """
@@ -13,7 +20,7 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeQueries do
   def list_active_meeting_types(user_id) do
     query =
       from(mt in MeetingTypeSchema,
-        where: mt.user_id == ^user_id and mt.is_active == true,
+        where: mt.user_id == ^user_id and mt.is_active == true and is_nil(mt.team_id),
         order_by: [asc: mt.sort_order, asc: mt.name],
         preload: [:video_integration, :calendar_integration]
       )
@@ -30,7 +37,9 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeQueries do
   def list_public_meeting_types(user_id) do
     query =
       from(mt in MeetingTypeSchema,
-        where: mt.user_id == ^user_id and mt.is_active == true and mt.is_private == false,
+        where:
+          mt.user_id == ^user_id and mt.is_active == true and mt.is_private == false and
+            is_nil(mt.team_id),
         order_by: [asc: mt.sort_order, asc: mt.name],
         preload: [:video_integration, :calendar_integration]
       )
@@ -45,7 +54,7 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeQueries do
   def list_all_meeting_types(user_id) do
     query =
       from(mt in MeetingTypeSchema,
-        where: mt.user_id == ^user_id,
+        where: mt.user_id == ^user_id and is_nil(mt.team_id),
         order_by: [asc: mt.sort_order, asc: mt.name],
         preload: [:video_integration, :calendar_integration]
       )
@@ -171,6 +180,9 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeQueries do
 
   @doc """
   Returns the names of all existing meeting types for a user as a MapSet.
+
+  Includes a team's settings row: names are unique per user across both, so a
+  caller picking a fresh name has to avoid that one too.
   """
   @spec existing_names(integer()) :: MapSet.t()
   def existing_names(user_id) do
@@ -232,7 +244,7 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeQueries do
     result =
       Repo.one(
         from(mt in MeetingTypeSchema,
-          where: mt.user_id == ^user_id,
+          where: mt.user_id == ^user_id and is_nil(mt.team_id),
           select: count(mt.id)
         )
       )
@@ -250,7 +262,7 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeQueries do
   def has_active_meeting_types?(user_id) do
     Repo.exists?(
       from(mt in MeetingTypeSchema,
-        where: mt.user_id == ^user_id and mt.is_active == true
+        where: mt.user_id == ^user_id and mt.is_active == true and is_nil(mt.team_id)
       )
     )
   end

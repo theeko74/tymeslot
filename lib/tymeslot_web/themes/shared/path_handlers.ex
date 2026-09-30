@@ -4,6 +4,7 @@ defmodule TymeslotWeb.Themes.Shared.PathHandlers do
   """
 
   alias Tymeslot.MeetingTypes
+  alias TymeslotWeb.Live.Scheduling.TeamHelpers
 
   @doc """
   Builds a path with locale and theme query parameters.
@@ -14,6 +15,13 @@ defmodule TymeslotWeb.Themes.Shared.PathHandlers do
     query_params = build_query_params(socket, locale)
     query_string = URI.encode_query(query_params)
     if query_string == "", do: base_path, else: "#{base_path}?#{query_string}"
+  end
+
+  defp get_base_path(%{assigns: %{team: %{} = team}} = socket) do
+    case socket.assigns[:live_action] do
+      action when action in [:booking, :confirmation] -> TeamHelpers.path(team, action)
+      _schedule -> TeamHelpers.path(team, :schedule)
+    end
   end
 
   defp get_base_path(socket) do

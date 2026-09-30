@@ -20,6 +20,10 @@ defmodule TymeslotWeb.Themes.Rhythm.Shared.OrganizerHeader do
   attr :organizer_profile, :map, required: true
   attr :meeting_type, :map, default: nil
   attr :selected_duration, :integer, default: nil
+  # On a team page: the team, whose name replaces the organiser's, and the
+  # members it books together.
+  attr :team, :map, default: nil
+  attr :team_member_profiles, :list, default: []
 
   @spec organizer_header_small(map()) :: Phoenix.LiveView.Rendered.t()
   def organizer_header_small(assigns) do
@@ -33,7 +37,10 @@ defmodule TymeslotWeb.Themes.Rhythm.Shared.OrganizerHeader do
       <div class="organizer-info-small">
         <div class="organizer-name">{dgettext("booking", "Schedule with")}</div>
         <div class="organizer-name-full">
-          {Profiles.display_name(@organizer_profile) || ""}
+          {if @team, do: @team.name, else: Profiles.display_name(@organizer_profile) || ""}
+        </div>
+        <div :if={@team} class="meeting-duration">
+          {Enum.map_join(@team_member_profiles, ", ", &Profiles.display_name/1)}
         </div>
         <div class="meeting-duration">
           <%= if @meeting_type do %>

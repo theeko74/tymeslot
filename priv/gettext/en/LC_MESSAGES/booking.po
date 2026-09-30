@@ -536,6 +536,7 @@ msgid "Schedule with"
 msgstr ""
 
 #: lib/tymeslot/profiles/organizer_context.ex
+#: lib/tymeslot_web/live/scheduling/team_helpers.ex
 #: lib/tymeslot_web/themes/shared/booking_text.ex
 #, elixir-autogen, elixir-format
 msgid "Schedule with %{name}"
@@ -1416,4 +1417,14 @@ msgstr ""
 #: lib/tymeslot_web/themes/shared/components/location_field.ex
 #, elixir-autogen, elixir-format
 msgid "Your phone number"
+msgstr ""
+
+#: lib/tymeslot/scheduling/link_access_policy.ex
+#, elixir-autogen, elixir-format
+msgid "This team page isn’t available right now. A team member hasn’t connected a calendar yet."
+msgstr ""
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/schedule_component.ex
+#, elixir-autogen, elixir-format
+msgid "With %{team}: %{members}"
 msgstr ""

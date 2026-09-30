@@ -10,6 +10,7 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers do
   alias Tymeslot.Workers.EmailWorkerHandlers.IntegrationEmails
   alias Tymeslot.Workers.EmailWorkerHandlers.MeetingEmails
   alias Tymeslot.Workers.EmailWorkerHandlers.PollEmails
+  alias Tymeslot.Workers.EmailWorkerHandlers.TeamEmails
 
   # Static dispatch table — keeps `execute_email_action/3` simple and lets
   # adding a new email type be a one-line change. Each entry maps the
@@ -50,7 +51,8 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers do
       {IntegrationEmails, :handle_video_room_creation_error_notification},
     "send_calendar_invitation" => {IntegrationEmails, :handle_calendar_invitation},
     "send_event_update_notification" =>
-      {IntegrationEmails, :handle_event_update_notification, :with_job_id}
+      {IntegrationEmails, :handle_event_update_notification, :with_job_id},
+    "send_team_member_added" => {TeamEmails, :handle_member_added}
   }
 
   # The handlers that declare some of their discards an expected end of the
@@ -61,7 +63,8 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers do
     GuestEmails,
     IntegrationEmails,
     MeetingEmails,
-    PollEmails
+    PollEmails,
+    TeamEmails
   ]
 
   @doc """

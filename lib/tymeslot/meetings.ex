@@ -9,6 +9,7 @@ defmodule Tymeslot.Meetings do
 
   alias Tymeslot.Bookings.{Cancel, Reschedule, RescheduleRequest}
 
+  alias Tymeslot.Infrastructure.AvailabilityCache
   alias Tymeslot.Infrastructure.Logging.LogFormat
 
   alias Tymeslot.Meetings.{
@@ -16,6 +17,7 @@ defmodule Tymeslot.Meetings do
     CalendarEventLink,
     CalendarEvents,
     Cancellation,
+    CoHostQueries,
     ExternalCalendarChanges,
     Guests,
     Listing,
@@ -453,6 +455,24 @@ defmodule Tymeslot.Meetings do
   defdelegate merge_busy_periods(calendar_events, organizer_user_id, from, to),
     to: BusyPeriods,
     as: :merge
+
+  @doc """
+  Drops the cached availability of everyone `meeting` occupies: its organiser
+  and, for a team booking, every co-host. Call after anything that changes
+  whether the meeting's slot is taken.
+  """
+  @spec invalidate_availability_for(MeetingSchema.t()) :: :ok
+  def invalidate_availability_for(%MeetingSchema{} = meeting) do
+    AvailabilityCache.invalidate_for_user(meeting.organizer_user_id)
+
+    if meeting.team_id do
+      meeting.id
+      |> CoHostQueries.user_ids_for_meeting()
+      |> Enum.each(&AvailabilityCache.invalidate_for_user/1)
+    end
+
+    :ok
+  end
 
   # =====================================
   # Analytics Query Functions

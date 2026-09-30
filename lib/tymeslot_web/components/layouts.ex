@@ -94,6 +94,8 @@ defmodule TymeslotWeb.Layouts do
     end
   end
 
+  defp booking_organizer_name(%{team: %{name: name}}) when is_binary(name), do: name
+
   defp booking_organizer_name(assigns) do
     case assigns[:organizer_profile] do
       %ProfileSchema{} = profile -> Profiles.display_name(profile) || assigns[:username_context]
