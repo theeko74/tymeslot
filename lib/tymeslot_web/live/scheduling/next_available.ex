@@ -60,8 +60,9 @@ defmodule TymeslotWeb.Live.Scheduling.NextAvailable do
 
   Returns `{socket, :done}` when the work is finished — a day was
   selected, the selection was left alone, or the search hit its bound —
-  and `{socket, :refetch}` when the window has been moved forward and the
-  caller must fetch availability for the new month.
+  and `{socket, :refetch}` when the window has been moved to another month
+  and the caller must fetch availability for it: either the search stepped
+  forward, or the day selected lives in the month after the one on screen.
 
   The refetch is handed back rather than performed here so this module
   keeps no dependency on the fetcher that calls it: `AvailabilityHelpers`
@@ -80,11 +81,26 @@ defmodule TymeslotWeb.Live.Scheduling.NextAvailable do
     end
   end
 
+  # The loaded map spans the display range of the month on screen, which runs
+  # into the next month's first days. Landing on one of those moves the grid
+  # onto that month, and the map does not cover the rest of it: painted from
+  # it, every later day of the new month reads as unavailable. So a landing
+  # that changes the month also asks for the new month's availability. The
+  # landing is already spent by then, so that fetch keeps the selection.
   defp land(socket) do
     case first_available_date(socket) do
-      nil -> search_forward(socket)
-      date -> {socket |> select(date) |> settle(), :done}
+      nil ->
+        search_forward(socket)
+
+      date ->
+        landed = socket |> select(date) |> settle()
+        {landed, if(same_month?(socket, landed), do: :done, else: :refetch)}
     end
+  end
+
+  defp same_month?(before, landed) do
+    {before.assigns[:current_year], before.assigns[:current_month]} ==
+      {landed.assigns[:current_year], landed.assigns[:current_month]}
   end
 
   @doc """

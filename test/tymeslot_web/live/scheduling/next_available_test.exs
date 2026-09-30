@@ -421,12 +421,47 @@ defmodule TymeslotWeb.Live.Scheduling.NextAvailableTest do
       # nothing to defer to. Standing down here left the emptiest grid to the
       # people facing the busiest calendar — the slot is being moved precisely
       # because that calendar was full.
-      today = Date.utc_today()
-      tomorrow = today |> Date.add(1) |> Date.to_string()
-      socket = socket_with(%{tomorrow => true}, is_rescheduling: true)
+      tomorrow = Date.add(Date.utc_today(), 1)
+
+      socket =
+        socket_with(%{Date.to_string(tomorrow) => true},
+          is_rescheduling: true,
+          displayed: tomorrow
+        )
 
       assert {landed, :done} = NextAvailable.apply(socket)
-      assert landed.assigns.selected_date == tomorrow
+      assert landed.assigns.selected_date == Date.to_string(tomorrow)
+    end
+
+    test "reloads availability when the first free day falls in the following month" do
+      # The grid's display range runs into the next month's first days. On a
+      # month's last days the first free day is often one of those, and landing
+      # on it moves the grid onto that month — whose remaining days the loaded
+      # map, fetched for the month just left, does not cover. Painted from it,
+      # they all read as unavailable until the booker leaves the month and
+      # comes back.
+      today = Date.utc_today()
+      next_month_first = today |> Date.end_of_month() |> Date.add(1)
+      first_free = Date.to_string(next_month_first)
+
+      socket = socket_with(%{first_free => true}, displayed: today)
+
+      assert {landed, :refetch} = NextAvailable.apply(socket)
+      assert landed.assigns.selected_date == first_free
+
+      assert {landed.assigns.current_year, landed.assigns.current_month} ==
+               {next_month_first.year, next_month_first.month}
+
+      # The landing is spent, so the refetch's result keeps the selection
+      # instead of searching again.
+      assert landed.assigns.auto_select_settled == true
+    end
+
+    test "needs no reload when the first free day is in the month on display" do
+      day = Date.add(Date.utc_today(), 1)
+
+      assert {_landed, :done} =
+               NextAvailable.apply(socket_with(%{Date.to_string(day) => true}, displayed: day))
     end
 
     test "stops searching once the hop budget is spent" do
@@ -493,11 +528,11 @@ defmodule TymeslotWeb.Live.Scheduling.NextAvailableTest do
     end
 
     test "a successful landing settles" do
-      today = Date.utc_today()
-      tomorrow = today |> Date.add(1) |> Date.to_string()
+      tomorrow = Date.add(Date.utc_today(), 1)
+      socket = socket_with(%{Date.to_string(tomorrow) => true}, displayed: tomorrow)
 
-      assert {settled, :done} = NextAvailable.apply(socket_with(%{tomorrow => true}))
-      assert settled.assigns.selected_date == tomorrow
+      assert {settled, :done} = NextAvailable.apply(socket)
+      assert settled.assigns.selected_date == Date.to_string(tomorrow)
       assert settled.assigns.auto_select_settled == true
     end
 
@@ -556,8 +591,10 @@ defmodule TymeslotWeb.Live.Scheduling.NextAvailableTest do
     |> Enum.any?()
   end
 
+  # `:displayed` sets the month the grid is showing, today's by default.
   defp socket_with(availability_map, overrides \\ []) do
     today = Date.utc_today()
+    displayed = Keyword.get(overrides, :displayed, today)
 
     assigns =
       %{
@@ -568,9 +605,9 @@ defmodule TymeslotWeb.Live.Scheduling.NextAvailableTest do
         selected_time: nil,
         is_rescheduling: Keyword.get(overrides, :is_rescheduling, false),
         month_availability_map: availability_map,
-        current_year: today.year,
-        current_month: today.month,
-        current_week_start: Date.beginning_of_week(today, :monday),
+        current_year: displayed.year,
+        current_month: displayed.month,
+        current_week_start: Date.beginning_of_week(displayed, :monday),
         user_timezone: "Etc/UTC",
         booking_window_days: Keyword.get(overrides, :advance_booking_days, 90),
         organizer_user_id: 1,
