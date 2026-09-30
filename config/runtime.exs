@@ -177,22 +177,34 @@ if config_env() == :prod do
 
   config :tymeslot, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
+  # A Docker instance whose host is the local machine is reached directly, with
+  # no reverse proxy in front: http on the listen port. That is what a local
+  # test run is (PHX_HOST is unset, so it defaults to localhost), and it needs
+  # no configuration of its own: generated links (OAuth redirect URIs, email
+  # links) read http://localhost:4000. Keyed on the host rather than on a
+  # variable, so no setting copied from a local .env can put a port or http
+  # into a public deployment's links.
+  local_host? = host in ["localhost", "127.0.0.1", "::1"]
+
   # URL scheme: Cloudron always uses https, Docker defaults to https but can override
   # Production deployments should use https via reverse proxy (nginx, Caddy, Traefik, etc.)
   url_scheme =
     case deployment_type do
       "cloudron" -> "https"
-      "docker" -> System.get_env("URL_SCHEME", "https")
+      "docker" -> System.get_env("URL_SCHEME", if(local_host?, do: "http", else: "https"))
     end
 
   # URL port for generation (what appears in generated URLs)
   # Production: Always use standard ports (80/443) - assumes reverse proxy on standard ports
-  # Dev: Uses PORT variable directly (e.g., 4000) via dev.exs
+  # Dev: Uses PORT variable directly (e.g., 4000) via dev.exs, or via a local
+  # Docker instance (see `local_host?` above)
   # This ensures production URLs never include port suffix (https://example.com not https://example.com:443)
   url_port =
-    case deployment_type do
-      "cloudron" -> 443
-      "docker" -> if url_scheme == "https", do: 443, else: 80
+    cond do
+      deployment_type == "cloudron" -> 443
+      local_host? and url_scheme == "http" -> port
+      url_scheme == "https" -> 443
+      true -> 80
     end
 
   # Listen IP configuration
