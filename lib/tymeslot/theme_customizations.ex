@@ -19,12 +19,15 @@ defmodule Tymeslot.ThemeCustomizations do
     DataTransform,
     Defaults,
     FileLifecycle,
+    Owner,
     Presets,
     Storage,
     Validation
   }
 
-  @type profile_id :: pos_integer()
+  # A profile's id, or a team page (`{:team, team_id, profile_id}`): every
+  # function taking one works for either; see `Owner`.
+  @type profile_id :: Owner.t()
   @type theme_id :: String.t()
   @type user_id :: pos_integer()
   @type customization_input :: ThemeCustomizationSchema.t() | map() | nil
@@ -87,7 +90,8 @@ defmodule Tymeslot.ThemeCustomizations do
   def create_theme_customization(profile_id, theme_id, attrs) do
     attrs =
       attrs
-      |> Map.put("profile_id", profile_id)
+      |> Map.put("profile_id", Owner.profile_id(profile_id))
+      |> Map.put("team_id", Owner.team_id(profile_id))
       |> Map.put("theme_id", theme_id)
 
     # Create the customization with race condition handling
@@ -112,7 +116,7 @@ defmodule Tymeslot.ThemeCustomizations do
 
   defp has_unique_constraint_error?(changeset) do
     Enum.any?(changeset.errors, fn {field, {_msg, opts}} ->
-      field == :profile_id and Keyword.get(opts, :constraint) == :unique
+      field in [:profile_id, :team_id] and Keyword.get(opts, :constraint) == :unique
     end)
   end
 
@@ -139,6 +143,13 @@ defmodule Tymeslot.ThemeCustomizations do
   """
   @spec delete_profile_files(profile_id()) :: :ok | {:error, File.posix(), Path.t()}
   def delete_profile_files(profile_id), do: Storage.delete_profile_directory(profile_id)
+
+  @doc """
+  Deletes every theme asset a team page uploaded. Its rows go with the team
+  (`ON DELETE CASCADE`); the files do not, so the team's deletion calls this.
+  """
+  @spec delete_team_files(pos_integer()) :: :ok | {:error, File.posix(), Path.t()}
+  def delete_team_files(team_id), do: Storage.delete_team_directory(team_id)
 
   @doc """
   Deletes a theme customization.

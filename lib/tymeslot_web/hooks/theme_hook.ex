@@ -26,9 +26,9 @@ defmodule TymeslotWeb.Hooks.ThemeHook do
       params["theme_id"] ->
         params["theme_id"]
 
-      # A team page wears its owner's theme
+      # A team page wears its own theme, else its owner's
       params["team_slug"] ->
-        Teams.owner_booking_theme(params["team_slug"]) || "1"
+        Teams.page_theme_by_slug(params["team_slug"]) || "1"
 
       # For username-based routes, resolve from profile
       params["username"] ->

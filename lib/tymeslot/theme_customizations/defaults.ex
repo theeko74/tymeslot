@@ -4,6 +4,7 @@ defmodule Tymeslot.ThemeCustomizations.Defaults do
   Handles theme-specific default configurations and customization initialization.
   """
 
+  alias Tymeslot.ThemeCustomizations.Owner
   alias Tymeslot.ThemeCustomizations.ThemeCustomizationSchema
 
   @doc """
@@ -41,15 +42,16 @@ defmodule Tymeslot.ThemeCustomizations.Defaults do
   @doc """
   Builds initial customization from saved data or defaults.
   """
-  @spec build_initial_customization(integer(), String.t(), ThemeCustomizationSchema.t() | nil) ::
+  @spec build_initial_customization(Owner.t(), String.t(), ThemeCustomizationSchema.t() | nil) ::
           ThemeCustomizationSchema.t()
-  def build_initial_customization(profile_id, theme_id, saved_customization) do
+  def build_initial_customization(owner, theme_id, saved_customization) do
     theme_defaults = get_theme_defaults(theme_id)
 
     case saved_customization do
       nil ->
         %ThemeCustomizationSchema{
-          profile_id: profile_id,
+          profile_id: Owner.profile_id(owner),
+          team_id: Owner.team_id(owner),
           theme_id: theme_id,
           color_scheme: theme_defaults.color_scheme,
           background_type: theme_defaults.background_type,

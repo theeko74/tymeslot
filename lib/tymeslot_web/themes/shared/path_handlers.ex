@@ -17,12 +17,8 @@ defmodule TymeslotWeb.Themes.Shared.PathHandlers do
     if query_string == "", do: base_path, else: "#{base_path}?#{query_string}"
   end
 
-  defp get_base_path(%{assigns: %{team: %{} = team}} = socket) do
-    case socket.assigns[:live_action] do
-      action when action in [:booking, :confirmation] -> TeamHelpers.path(team, action)
-      _schedule -> TeamHelpers.path(team, :schedule)
-    end
-  end
+  defp get_base_path(%{assigns: %{team: %{} = team}} = socket),
+    do: TeamHelpers.path(team, socket.assigns[:live_action], get_slug(socket))
 
   defp get_base_path(socket) do
     username = socket.assigns[:username_context]

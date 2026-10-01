@@ -20,11 +20,6 @@ msgstr[1] "%{count} Mitglieder"
 
 #: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
 #, elixir-autogen, elixir-format
-msgid "%{minutes} min"
-msgstr "%{minutes} Min."
-
-#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
-#, elixir-autogen, elixir-format
 msgid "Add"
 msgstr "Hinzufügen"
 
@@ -97,11 +92,6 @@ msgstr "Team verlassen"
 #, elixir-autogen, elixir-format
 msgid "Manage"
 msgstr "Verwalten"
-
-#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
-#, elixir-autogen, elixir-format
-msgid "Meeting duration (minutes)"
-msgstr "Termindauer (Minuten)"
 
 #: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
 #, elixir-autogen, elixir-format
@@ -217,11 +207,6 @@ msgstr "Dieses Team existiert nicht mehr."
 
 #: lib/tymeslot/teams.ex
 #, elixir-autogen, elixir-format
-msgid "You already have a meeting type with this name. Choose another team name."
-msgstr "Sie haben bereits einen Termintyp mit diesem Namen. Wählen Sie einen anderen Teamnamen."
-
-#: lib/tymeslot/teams.ex
-#, elixir-autogen, elixir-format
 msgid "You are already in this team."
 msgstr "Sie sind bereits in diesem Team."
 
@@ -249,3 +234,188 @@ msgstr "z. B. Vertriebsteam"
 #, elixir-autogen, elixir-format
 msgid "owner"
 msgstr "Inhaber"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "%{count} meeting type"
+msgid_plural "%{count} meeting types"
+msgstr[0] "%{count} Termintyp"
+msgstr[1] "%{count} Termintypen"
+
+#: lib/tymeslot_web/live/dashboard/meeting_settings/meeting_types_list_component.ex
+#: lib/tymeslot_web/live/dashboard/service_settings/component_view.ex
+#, elixir-autogen, elixir-format
+msgid "Add a team meeting type"
+msgstr "Team-Termintyp hinzufügen"
+
+#: lib/tymeslot_web/live/dashboard/meeting_settings/meeting_type_form/form_view.ex
+#, elixir-autogen, elixir-format
+msgid "Availability: each member's own default schedule applies. A time is offered only when every member is free."
+msgstr "Verfügbarkeit: Es gilt der Standardzeitplan jedes Mitglieds. Eine Zeit wird nur angeboten, wenn alle Mitglieder frei sind."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Manage meeting types"
+msgstr "Termintypen verwalten"
+
+#: lib/tymeslot_web/live/dashboard/meeting_settings/meeting_types_list_component.ex
+#, elixir-autogen, elixir-format
+msgid "Team meeting types"
+msgstr "Team-Termintypen"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "This team offers %{count} meeting type."
+msgid_plural "This team offers %{count} meeting types."
+msgstr[0] "Dieses Team bietet %{count} Termintyp an."
+msgstr[1] "Dieses Team bietet %{count} Termintypen an."
+
+#: lib/tymeslot_web/live/dashboard/meeting_settings/meeting_types_list_component.ex
+#, elixir-autogen, elixir-format
+msgid "Create a team meeting type once, then choose on the Teams page which of your teams offer it. It is booked only when every member is free, against each member's own availability."
+msgstr "Legen Sie einen Team-Termintyp einmal an und wählen Sie dann auf der Seite „Teams“, welche Ihrer Teams ihn anbieten. Er ist nur buchbar, wenn alle Mitglieder frei sind, gemessen an der Verfügbarkeit jedes Mitglieds."
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/theme_customization_component.ex
+#, elixir-autogen, elixir-format
+msgid "Customizing the page of the team %{team}."
+msgstr "Sie passen die Seite des Teams %{team} an."
+
+#: lib/tymeslot_web/live/dashboard/theme_settings_component.ex
+#, elixir-autogen, elixir-format
+msgid "Each team page can wear its own style. Until you choose one, it wears yours."
+msgstr "Jede Teamseite kann einen eigenen Stil haben. Solange Sie keinen wählen, übernimmt sie Ihren."
+
+#: lib/tymeslot_web/live/dashboard/meeting_settings/meeting_types_list_component.ex
+#, elixir-autogen, elixir-format
+msgid "No team meeting type yet."
+msgstr "Noch kein Team-Termintyp."
+
+#: lib/tymeslot_web/live/dashboard/meeting_settings/meeting_types_list_component.ex
+#, elixir-autogen, elixir-format
+msgid "Not offered by any team yet."
+msgstr "Noch von keinem Team angeboten."
+
+#: lib/tymeslot_web/live/dashboard/meeting_settings/meeting_types_list_component.ex
+#, elixir-autogen, elixir-format
+msgid "Offered by: %{teams}"
+msgstr "Angeboten von: %{teams}"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings_component.ex
+#, elixir-autogen, elixir-format
+msgid "Style of the team %{team} updated"
+msgstr "Stil des Teams %{team} aktualisiert"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings_component.ex
+#, elixir-autogen, elixir-format
+msgid "Team pages"
+msgstr "Teamseiten"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings_component.ex
+#, elixir-autogen, elixir-format
+msgid "Use this style"
+msgstr "Diesen Stil verwenden"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings_component.ex
+#, elixir-autogen, elixir-format
+msgid "Wear the same style as my page"
+msgstr "Den Stil meiner Seite übernehmen"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "You have no team meeting type yet. Create one in the meeting settings, then offer it here."
+msgstr "Sie haben noch keinen Team-Termintyp. Legen Sie einen in den Termineinstellungen an und bieten Sie ihn dann hier an."
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/booking_text_form.ex
+#, elixir-autogen, elixir-format
+msgid "(the team's current theme)"
+msgstr "(aktuelles Theme des Teams)"
+
+#: lib/tymeslot_web/live/dashboard/meeting_settings/card.ex
+#, elixir-autogen, elixir-format
+msgid "Inactive"
+msgstr "Inaktiv"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "Logo removed"
+msgstr "Logo entfernt"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "Logo updated"
+msgstr "Logo aktualisiert"
+
+#: lib/tymeslot_web/live/dashboard/meeting_settings/card.ex
+#, elixir-autogen, elixir-format
+msgid "Offer %{name} on this team"
+msgstr "%{name} in diesem Team anbieten"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "Remove the logo"
+msgstr "Logo entfernen"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/booking_text_form.ex
+#, elixir-autogen, elixir-format
+msgid "Replace the wording that introduces the team at the top of its page. Applies to every theme."
+msgstr "Ersetzen Sie den Text, der das Team oben auf seiner Seite vorstellt. Gilt für alle Themes."
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "Shown on the team page in place of your photo. JPG, PNG, GIF or WebP, 10MB at most."
+msgstr "Wird auf der Teamseite anstelle Ihres Fotos angezeigt. JPG, PNG, GIF oder WebP, höchstens 10 MB."
+
+#: lib/tymeslot_web/live/dashboard/meeting_settings/card.ex
+#, elixir-autogen, elixir-format
+msgid "Switched off in the meeting settings: not shown on any team page."
+msgstr "In den Termineinstellungen deaktiviert: auf keiner Teamseite sichtbar."
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "Team logo"
+msgstr "Teamlogo"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/booking_text_form.ex
+#, elixir-autogen, elixir-format
+msgid "Team page text"
+msgstr "Text der Teamseite"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "The logo could not be removed."
+msgstr "Das Logo konnte nicht entfernt werden."
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "The logo could not be saved."
+msgstr "Das Logo konnte nicht gespeichert werden."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "The team page's wording, logo and style are set in the Theme tab."
+msgstr "Text, Logo und Stil der Teamseite legen Sie im Tab „Theme“ fest."
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "This file is not a valid image."
+msgstr "Diese Datei ist kein gültiges Bild."
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "Upload"
+msgstr "Hochladen"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "Upload a logo"
+msgstr "Logo hochladen"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "Uploading..."
+msgstr "Wird hochgeladen…"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Not offered by this team"
+msgstr "Nicht von diesem Team angeboten"

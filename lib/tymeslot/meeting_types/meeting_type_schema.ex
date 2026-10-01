@@ -43,7 +43,7 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeSchema do
           video_integration_id: integer() | nil,
           calendar_integration_id: integer() | nil,
           target_calendar_id: String.t() | nil,
-          team_id: integer() | nil,
+          is_team_type: boolean(),
           inserted_at: DateTime.t() | nil,
           updated_at: DateTime.t() | nil
         }
@@ -85,11 +85,15 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeSchema do
       Tymeslot.Availability.AvailabilityScheduleSchema
     )
 
-    # Set on the one row that holds a team's booking settings (see
-    # `Tymeslot.Teams`). Such a row belongs to the team's owner so the booking
-    # pipeline can read it like any other type, but it is never one of the
-    # owner's own meeting types: every personal listing filters it out.
-    belongs_to(:team, Tymeslot.Teams.TeamSchema)
+    # A team meeting type: offered on the pages of the user's teams that list
+    # it (`team_meeting_types`), never on the user's own page. Every personal
+    # listing filters it out; see `Tymeslot.Teams`.
+    field(:is_team_type, :boolean, default: false)
+
+    many_to_many(:teams, Tymeslot.Teams.TeamSchema,
+      join_through: Tymeslot.Teams.TeamMeetingTypeSchema,
+      join_keys: [meeting_type_id: :id, team_id: :id]
+    )
 
     embeds_many(:custom_fields, FieldDefinition, on_replace: :delete)
     embeds_many(:attachments, MeetingTypeAttachment, on_replace: :delete)
@@ -179,7 +183,7 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeSchema do
       :max_bookings_per_day,
       :max_bookings_per_week,
       :max_bookings_per_month,
-      :team_id
+      :is_team_type
     ])
     |> cast_embed(:custom_fields, with: &FieldDefinition.changeset/2)
     |> cast_embed(:attachments, with: &MeetingTypeAttachment.changeset/2)
@@ -200,19 +204,20 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeSchema do
     |> validate_video_integration()
     |> validate_calendar_destination()
     |> validate_reminder_config()
+    |> enforce_team_rules()
     |> validate_payment_fields(opts)
     |> unique_constraint([:user_id, :name],
       message: "You already have a meeting type with this name"
     )
-    |> unique_constraint([:user_id, :slug],
-      name: :meeting_types_user_id_slug_index,
-      message: "is already taken"
+    |> unique_constraint([:user_id, :name],
+      name: :meeting_types_user_id_team_type_name_index,
+      message: "You already have a team meeting type with this name"
     )
+    |> unique_constraints_on_slug()
     |> foreign_key_constraint(:user_id)
     |> foreign_key_constraint(:video_integration_id)
     |> foreign_key_constraint(:calendar_integration_id)
     |> foreign_key_constraint(:availability_schedule_id)
-    |> foreign_key_constraint(:team_id)
   end
 
   @doc """
@@ -244,10 +249,38 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeSchema do
     |> cast(attrs, [:slug])
     |> normalize_slug()
     |> validate_slug()
+    |> unique_constraints_on_slug()
+  end
+
+  # Personal meeting types are slugged among their owner's personal types, team
+  # types among their owner's team types; see the
+  # `generic_team_meeting_types` migration.
+  defp unique_constraints_on_slug(changeset) do
+    changeset
     |> unique_constraint([:user_id, :slug],
       name: :meeting_types_user_id_slug_index,
       message: "is already taken"
     )
+    |> unique_constraint([:user_id, :slug],
+      name: :meeting_types_user_id_team_type_slug_index,
+      message: "is already taken"
+    )
+  end
+
+  # A team meeting type is booked against every member's own default schedule
+  # (`Tymeslot.Availability.TeamOffer`), so it cannot name a schedule, which
+  # would belong to the owner alone. It cannot be paid either: a paid booking
+  # is created on a path that records no co-hosts. Enforced here rather than in
+  # the form, so no write path can set either.
+  defp enforce_team_rules(changeset) do
+    if get_field(changeset, :is_team_type) do
+      changeset
+      |> put_change(:availability_schedule_id, nil)
+      |> put_change(:payment_required, false)
+      |> put_change(:price_cents, nil)
+    else
+      changeset
+    end
   end
 
   # An empty/blank custom slug means "derive the slug from the name", stored as

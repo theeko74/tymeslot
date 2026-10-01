@@ -1425,7 +1425,7 @@ msgstr "Vaše telefonní číslo"
 msgid "This team page isn’t available right now. A team member hasn’t connected a calendar yet."
 msgstr "Tato týmová stránka není momentálně dostupná. Jeden ze členů týmu zatím nepřipojil kalendář."
 
-#: lib/tymeslot_web/themes/quill/scheduling/components/schedule_component.ex
+#: lib/tymeslot_web/live/scheduling/team_helpers.ex
 #, elixir-autogen, elixir-format
 msgid "With %{team}: %{members}"
 msgstr "Tým %{team}: %{members}"

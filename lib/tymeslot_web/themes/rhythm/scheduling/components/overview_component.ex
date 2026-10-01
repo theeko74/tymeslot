@@ -10,6 +10,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.OverviewComponent do
   alias Tymeslot.Meetings.Approval
   alias Tymeslot.MeetingTypes
   alias Tymeslot.Profiles
+  alias TymeslotWeb.Live.Scheduling.TeamHelpers
   alias TymeslotWeb.Themes.Shared.BookingText
   alias TymeslotWeb.Themes.Shared.Components.ApprovalNotice
   alias TymeslotWeb.Themes.Shared.LocalizationHelpers
@@ -50,24 +51,36 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.OverviewComponent do
         <div class="slide active">
           <div class="slide-content">
             <h1 class="slide-title">
-              {BookingText.heading(@organizer_profile, :rhythm, display_name(@organizer_profile))}
+              <%!-- A team page introduces the team, never its owner. --%>
+              {if assigns[:team],
+                do: TeamHelpers.heading(assigns),
+                else:
+                  BookingText.heading(@organizer_profile, :rhythm, display_name(@organizer_profile))}
             </h1>
 
             <div class="organizer-profile">
               <div class="organizer-avatar">
                 <img
                   src={Demo.avatar_url(@organizer_profile, :thumb)}
-                  alt={Demo.avatar_alt_text(@organizer_profile)}
+                  alt={
+                    if assigns[:team],
+                      do: @team.name,
+                      else: Demo.avatar_alt_text(@organizer_profile)
+                  }
                   class="avatar-image"
                 />
                 <div class="avatar-checkmark">✓</div>
               </div>
               <div class="organizer-info">
                 <p class="organizer-greeting">
-                  {BookingText.greeting(@organizer_profile, display_name(@organizer_profile))}
+                  {if assigns[:team],
+                    do: TeamHelpers.greeting(assigns),
+                    else: BookingText.greeting(@organizer_profile, display_name(@organizer_profile))}
                 </p>
                 <p class="organizer-instruction">
-                  {BookingText.instruction(@organizer_profile)}
+                  {if assigns[:team],
+                    do: TeamHelpers.instruction(assigns),
+                    else: BookingText.instruction(@organizer_profile)}
                 </p>
               </div>
             </div>

@@ -64,7 +64,7 @@ defmodule Tymeslot.MeetingTypes.Slugs do
   """
   @spec generate_random_slug(integer()) :: String.t()
   def generate_random_slug(user_id) do
-    taken = taken_slugs(user_id, nil)
+    taken = user_id |> MeetingTypeQueries.list_all_meeting_types() |> taken_slugs(nil)
 
     Enum.find(Stream.repeatedly(&random_slug_token/0), fn slug ->
       not MapSet.member?(taken, slug)
@@ -95,32 +95,54 @@ defmodule Tymeslot.MeetingTypes.Slugs do
   def update_slug(meeting_type, slug) do
     attrs = %{slug: normalize_slug(slug)}
 
-    with :ok <- gate_slug_available(meeting_type.user_id, attrs, meeting_type.id) do
+    with :ok <- gate_slug_available(siblings(meeting_type), attrs, meeting_type.id) do
       MeetingTypeQueries.update_slug(meeting_type, attrs)
     end
   end
+
+  @doc """
+  Finds a team's active meeting type by its effective slug, private ones
+  included (a private type is reachable by its direct link). A custom slug
+  wins over a name-derived one, as in `find_by_slug/2`.
+  """
+  @spec find_team_type_by_slug([Ecto.Schema.t()], String.t() | nil) :: Ecto.Schema.t() | nil
+  def find_team_type_by_slug(team_meeting_types, slug) when is_binary(slug) do
+    active = Enum.filter(team_meeting_types, & &1.is_active)
+
+    Enum.find(active, fn mt -> mt.slug == slug end) ||
+      Enum.find(active, fn mt -> effective_slug(mt) == slug end)
+  end
+
+  def find_team_type_by_slug(_team_meeting_types, _slug), do: nil
+
+  # The meeting types a slug must not collide with: a team type's are its
+  # owner's other team types (any of their teams can offer any of them), a
+  # personal type's are its owner's other personal types.
+  defp siblings(%{is_team_type: true, user_id: user_id}),
+    do: MeetingTypeQueries.list_user_team_meeting_types(user_id)
+
+  defp siblings(%{user_id: user_id}), do: MeetingTypeQueries.list_all_meeting_types(user_id)
 
   defp random_slug_token do
     8 |> :crypto.strong_rand_bytes() |> Base.encode32(case: :lower, padding: false)
   end
 
-  # Effective slugs already taken by the user's other meeting types (optionally
-  # excluding one, so a type doesn't conflict with itself on update).
-  defp taken_slugs(user_id, exclude_id) do
-    user_id
-    |> MeetingTypeQueries.list_all_meeting_types()
+  # Effective slugs already taken by `siblings` (optionally excluding one, so a
+  # type doesn't conflict with itself on update).
+  defp taken_slugs(siblings, exclude_id) do
+    siblings
     |> Enum.reject(fn mt -> exclude_id && mt.id == exclude_id end)
     |> Enum.map(&effective_slug/1)
     |> MapSet.new()
   end
 
-  # A custom slug must not collide with another of the user's meeting types,
-  # whether that sibling carries a custom slug or a name-derived one (the latter
-  # is invisible to the DB unique index, so it is checked here).
-  defp gate_slug_available(_user_id, %{slug: nil}, _exclude_id), do: :ok
+  # A custom slug must not collide with a sibling meeting type, whether that
+  # sibling carries a custom slug or a name-derived one (the latter is
+  # invisible to the DB unique index, so it is checked here).
+  defp gate_slug_available(_siblings, %{slug: nil}, _exclude_id), do: :ok
 
-  defp gate_slug_available(user_id, %{slug: slug}, exclude_id) when is_binary(slug) do
-    if MapSet.member?(taken_slugs(user_id, exclude_id), slug),
+  defp gate_slug_available(siblings, %{slug: slug}, exclude_id) when is_binary(slug) do
+    if MapSet.member?(taken_slugs(siblings, exclude_id), slug),
       do: {:error, :slug_taken},
       else: :ok
   end

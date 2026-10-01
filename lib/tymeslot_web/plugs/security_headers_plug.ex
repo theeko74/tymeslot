@@ -83,6 +83,12 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
     username = PathUtils.extract_username_from_path(conn.request_path)
 
     case username do
+      # A team page has no embed settings of its own; it frames only as the
+      # owner's preview in the dashboard, same-origin, like a personal page
+      # with no embed domains.
+      "team" ->
+        build_security_headers(nil, is_preview)
+
       nil ->
         # No username in path; default to blocking embedding.
         # (We don't want "allow all embedding" as a fallback.)

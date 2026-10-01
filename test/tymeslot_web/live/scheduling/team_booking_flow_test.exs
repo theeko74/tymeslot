@@ -15,10 +15,12 @@ defmodule TymeslotWeb.Live.Scheduling.TeamBookingFlowTest do
   import Tymeslot.Factory
   import Tymeslot.TeamTestHelpers
 
+  alias Ecto.Changeset
   alias Tymeslot.BookingTestHelpers
   alias Tymeslot.Infrastructure.AvailabilityCache
   alias Tymeslot.Meetings.CoHostQueries
   alias Tymeslot.Meetings.MeetingSchema
+  alias Tymeslot.Profiles
   alias Tymeslot.Repo
   alias Tymeslot.Security.RateLimiter
   alias Tymeslot.Teams
@@ -50,8 +52,13 @@ defmodule TymeslotWeb.Live.Scheduling.TeamBookingFlowTest do
           [timezone: "Etc/UTC", days: Enum.to_list(1..7), hours: open_day],
           [timezone: "Etc/UTC", days: Enum.to_list(1..7), hours: open_day]
         ],
-        team: [name: "Product Team", slug: "product-team", duration_minutes: 30]
+        team: [name: "Product Team", slug: "product-team"],
+        meeting_type: [name: "Quick call", slug: "quick-call", duration_minutes: 30]
       )
+
+    # One of the owner's own types, which the team page must never offer.
+    [owner | _rest] = members
+    insert(:meeting_type, user: owner.user, name: "Owner's own chat")
 
     %{team: team, members: members}
   end
@@ -82,12 +89,52 @@ defmodule TymeslotWeb.Live.Scheduling.TeamBookingFlowTest do
     view
   end
 
-  test "opens on the schedule step and names the team", %{conn: conn} do
+  test "lists the team's meeting types, never the owner's own, under the team's name",
+       %{conn: conn, members: [owner, member]} do
     {:ok, view, html} = live(conn, "/team/product-team?timezone=Etc/UTC")
 
     assert html =~ "Product Team"
+    assert has_element?(view, "button[data-testid='duration-option']", "Quick call")
+    refute html =~ "Owner&#39;s own chat"
+
+    # The default greeting names the team's members.
+    assert html =~ Profiles.display_name(owner.profile)
+    assert html =~ Profiles.display_name(member.profile)
+  end
+
+  test "shows the team's own wording when it has some", %{conn: conn, team: team} do
+    {:ok, _team} =
+      Teams.update_booking_text(team.id, team.owner_user_id, %{
+        "booking_text_enabled" => true,
+        "booking_heading" => "Meet the product folks",
+        "booking_greeting" => "Talk to the product folks",
+        "booking_instruction" => "Choose a format"
+      })
+
+    {:ok, _view, html} = live(conn, "/team/product-team?timezone=Etc/UTC")
+
+    assert html =~ "Meet the product folks"
+    assert html =~ "Talk to the product folks"
+    assert html =~ "Choose a format"
+  end
+
+  test "shows the team's logo in place of the owner's photo", %{conn: conn, team: team} do
+    team |> Changeset.change(logo: "logo.png") |> Repo.update!()
+
+    {:ok, _view, html} = live(conn, "/team/product-team?timezone=Etc/UTC")
+
+    assert html =~ "/uploads/team_logos/#{team.id}/logo.png"
+  end
+
+  test "a meeting type's link opens its calendar directly", %{conn: conn} do
+    {:ok, view, _html} = live(conn, "/team/product-team/quick-call?timezone=Etc/UTC")
+
     wait_until(fn -> has_element?(view, @calendar_day) end)
-    refute has_element?(view, "button[data-testid='duration-option']")
+  end
+
+  test "an unknown meeting type link returns to the team's page", %{conn: conn} do
+    assert {:error, {:redirect, %{to: "/team/product-team"}}} =
+             live(conn, "/team/product-team/no-such-type")
   end
 
   test "an unknown team is a 404", %{conn: conn} do
@@ -109,7 +156,7 @@ defmodule TymeslotWeb.Live.Scheduling.TeamBookingFlowTest do
     team: team,
     members: [owner, member]
   } do
-    {:ok, view, _html} = live(conn, "/team/product-team?timezone=Etc/UTC")
+    {:ok, view, _html} = live(conn, "/team/product-team/quick-call?timezone=Etc/UTC")
     view = walk_to_booking_form(view)
 
     view
@@ -122,17 +169,18 @@ defmodule TymeslotWeb.Live.Scheduling.TeamBookingFlowTest do
 
     assert [meeting] = Repo.all_by(MeetingSchema, attendee_email: "visitor@example.com")
     assert meeting.team_id == team.id
+    assert meeting.meeting_type_id == hd(team.meeting_types).id
     assert meeting.organizer_user_id == owner.user.id
     assert CoHostQueries.user_ids_for_meeting(meeting.id) == [member.user.id]
     assert render(view) =~ "Product Team"
   end
 
-  test "switching language keeps the team page", %{conn: conn} do
-    {:ok, view, _html} = live(conn, "/team/product-team?timezone=Etc/UTC")
+  test "switching language keeps the team page and its meeting type", %{conn: conn} do
+    {:ok, view, _html} = live(conn, "/team/product-team/quick-call?timezone=Etc/UTC")
 
     assert {:error, {:redirect, %{to: to}}} =
              render_hook(view, "change_locale", %{"locale" => "fr"})
 
-    assert to =~ "/team/product-team"
+    assert to =~ "/team/product-team/quick-call"
   end
 end

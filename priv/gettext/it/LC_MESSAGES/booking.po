@@ -1426,7 +1426,7 @@ msgstr "Il tuo numero di telefono"
 msgid "This team page isn’t available right now. A team member hasn’t connected a calendar yet."
 msgstr "Questa pagina del team non è al momento disponibile. Un membro del team non ha ancora collegato un calendario."
 
-#: lib/tymeslot_web/themes/quill/scheduling/components/schedule_component.ex
+#: lib/tymeslot_web/live/scheduling/team_helpers.ex
 #, elixir-autogen, elixir-format
 msgid "With %{team}: %{members}"
 msgstr "Con %{team}: %{members}"

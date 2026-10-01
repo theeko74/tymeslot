@@ -19,6 +19,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Helpers do
   def reset_form_state(socket) do
     socket
     |> Component.assign(:show_add_form, false)
+    |> Component.assign(:adding_team_type, false)
     |> Component.assign(:editing_type, nil)
     |> Component.assign(:show_edit_overlay, false)
     |> Component.assign(:form_errors, %{})

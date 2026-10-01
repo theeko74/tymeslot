@@ -314,6 +314,29 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlugTest do
       end
     end
 
+    test "a team page frames same-origin as its owner's preview, and nowhere otherwise",
+         %{conn: conn} do
+      preview =
+        conn
+        |> Map.put(:request_path, "/team/sales")
+        |> Map.put(:query_params, %{"preview" => "true"})
+        |> SecurityHeadersPlug.call(allow_embedding: true)
+
+      assert get_resp_header(preview, "x-frame-options") == ["SAMEORIGIN"]
+      assert [csp] = get_resp_header(preview, "content-security-policy")
+      assert csp =~ "frame-ancestors 'self'"
+
+      public =
+        build_conn()
+        |> Map.put(:request_path, "/team/sales")
+        |> Map.put(:query_params, %{})
+        |> SecurityHeadersPlug.call(allow_embedding: true)
+
+      refute get_resp_header(public, "x-frame-options") == ["SAMEORIGIN"]
+      assert [csp] = get_resp_header(public, "content-security-policy")
+      refute csp =~ "frame-ancestors 'self';"
+    end
+
     test "allows SAMEORIGIN framing when preview=true is passed", %{conn: conn} do
       user = insert(:user)
       profile = insert(:profile, user: user, username: "previewuser", allowed_embed_domains: [])

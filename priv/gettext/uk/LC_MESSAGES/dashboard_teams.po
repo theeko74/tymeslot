@@ -21,11 +21,6 @@ msgstr[2] "%{count} учасників"
 
 #: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
 #, elixir-autogen, elixir-format
-msgid "%{minutes} min"
-msgstr "%{minutes} хв"
-
-#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
-#, elixir-autogen, elixir-format
 msgid "Add"
 msgstr "Додати"
 
@@ -98,11 +93,6 @@ msgstr "Вийти з команди"
 #, elixir-autogen, elixir-format
 msgid "Manage"
 msgstr "Керувати"
-
-#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
-#, elixir-autogen, elixir-format
-msgid "Meeting duration (minutes)"
-msgstr "Тривалість зустрічі (хвилини)"
 
 #: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
 #, elixir-autogen, elixir-format
@@ -218,11 +208,6 @@ msgstr "Цієї команди більше не існує."
 
 #: lib/tymeslot/teams.ex
 #, elixir-autogen, elixir-format
-msgid "You already have a meeting type with this name. Choose another team name."
-msgstr "У вас уже є тип зустрічі з такою назвою. Оберіть іншу назву команди."
-
-#: lib/tymeslot/teams.ex
-#, elixir-autogen, elixir-format
 msgid "You are already in this team."
 msgstr "Ви вже в цій команді."
 
@@ -250,3 +235,190 @@ msgstr "напр., Відділ продажів"
 #, elixir-autogen, elixir-format
 msgid "owner"
 msgstr "власник"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "%{count} meeting type"
+msgid_plural "%{count} meeting types"
+msgstr[0] "%{count} тип зустрічі"
+msgstr[1] "%{count} типи зустрічей"
+msgstr[2] "%{count} типів зустрічей"
+
+#: lib/tymeslot_web/live/dashboard/meeting_settings/meeting_types_list_component.ex
+#: lib/tymeslot_web/live/dashboard/service_settings/component_view.ex
+#, elixir-autogen, elixir-format
+msgid "Add a team meeting type"
+msgstr "Додати тип зустрічі команди"
+
+#: lib/tymeslot_web/live/dashboard/meeting_settings/meeting_type_form/form_view.ex
+#, elixir-autogen, elixir-format
+msgid "Availability: each member's own default schedule applies. A time is offered only when every member is free."
+msgstr "Доступність: діє розклад за замовчуванням кожного учасника. Час пропонується лише тоді, коли вільні всі учасники."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Manage meeting types"
+msgstr "Керувати типами зустрічей"
+
+#: lib/tymeslot_web/live/dashboard/meeting_settings/meeting_types_list_component.ex
+#, elixir-autogen, elixir-format
+msgid "Team meeting types"
+msgstr "Типи зустрічей команди"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "This team offers %{count} meeting type."
+msgid_plural "This team offers %{count} meeting types."
+msgstr[0] "Ця команда пропонує %{count} тип зустрічі."
+msgstr[1] "Ця команда пропонує %{count} типи зустрічей."
+msgstr[2] "Ця команда пропонує %{count} типів зустрічей."
+
+#: lib/tymeslot_web/live/dashboard/meeting_settings/meeting_types_list_component.ex
+#, elixir-autogen, elixir-format
+msgid "Create a team meeting type once, then choose on the Teams page which of your teams offer it. It is booked only when every member is free, against each member's own availability."
+msgstr "Створіть тип зустрічі команди один раз, а потім на сторінці «Команди» виберіть, які з ваших команд його пропонують. Його можна забронювати лише тоді, коли всі учасники вільні, згідно з доступністю кожного з них."
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/theme_customization_component.ex
+#, elixir-autogen, elixir-format
+msgid "Customizing the page of the team %{team}."
+msgstr "Ви налаштовуєте сторінку команди %{team}."
+
+#: lib/tymeslot_web/live/dashboard/theme_settings_component.ex
+#, elixir-autogen, elixir-format
+msgid "Each team page can wear its own style. Until you choose one, it wears yours."
+msgstr "Кожна сторінка команди може мати власний стиль. Поки ви його не виберете, вона використовує ваш."
+
+#: lib/tymeslot_web/live/dashboard/meeting_settings/meeting_types_list_component.ex
+#, elixir-autogen, elixir-format
+msgid "No team meeting type yet."
+msgstr "Ще немає типів зустрічей команди."
+
+#: lib/tymeslot_web/live/dashboard/meeting_settings/meeting_types_list_component.ex
+#, elixir-autogen, elixir-format
+msgid "Not offered by any team yet."
+msgstr "Поки не пропонується жодною командою."
+
+#: lib/tymeslot_web/live/dashboard/meeting_settings/meeting_types_list_component.ex
+#, elixir-autogen, elixir-format
+msgid "Offered by: %{teams}"
+msgstr "Пропонують: %{teams}"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings_component.ex
+#, elixir-autogen, elixir-format
+msgid "Style of the team %{team} updated"
+msgstr "Стиль команди %{team} оновлено"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings_component.ex
+#, elixir-autogen, elixir-format
+msgid "Team pages"
+msgstr "Сторінки команд"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings_component.ex
+#, elixir-autogen, elixir-format
+msgid "Use this style"
+msgstr "Використати цей стиль"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings_component.ex
+#, elixir-autogen, elixir-format
+msgid "Wear the same style as my page"
+msgstr "Використовувати стиль моєї сторінки"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "You have no team meeting type yet. Create one in the meeting settings, then offer it here."
+msgstr "У вас ще немає типу зустрічі команди. Створіть його в налаштуваннях зустрічей, а потім запропонуйте тут."
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/booking_text_form.ex
+#, elixir-autogen, elixir-format
+msgid "(the team's current theme)"
+msgstr "(поточна тема команди)"
+
+#: lib/tymeslot_web/live/dashboard/meeting_settings/card.ex
+#, elixir-autogen, elixir-format
+msgid "Inactive"
+msgstr "Неактивний"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "Logo removed"
+msgstr "Логотип видалено"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "Logo updated"
+msgstr "Логотип оновлено"
+
+#: lib/tymeslot_web/live/dashboard/meeting_settings/card.ex
+#, elixir-autogen, elixir-format
+msgid "Offer %{name} on this team"
+msgstr "Пропонувати %{name} у цій команді"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "Remove the logo"
+msgstr "Видалити логотип"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/booking_text_form.ex
+#, elixir-autogen, elixir-format
+msgid "Replace the wording that introduces the team at the top of its page. Applies to every theme."
+msgstr "Замініть текст, який представляє команду вгорі її сторінки. Діє для всіх тем."
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "Shown on the team page in place of your photo. JPG, PNG, GIF or WebP, 10MB at most."
+msgstr "Показується на сторінці команди замість вашого фото. JPG, PNG, GIF або WebP, не більше 10 МБ."
+
+#: lib/tymeslot_web/live/dashboard/meeting_settings/card.ex
+#, elixir-autogen, elixir-format
+msgid "Switched off in the meeting settings: not shown on any team page."
+msgstr "Вимкнено в налаштуваннях зустрічей: не показується на жодній сторінці команди."
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "Team logo"
+msgstr "Логотип команди"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/booking_text_form.ex
+#, elixir-autogen, elixir-format
+msgid "Team page text"
+msgstr "Текст сторінки команди"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "The logo could not be removed."
+msgstr "Не вдалося видалити логотип."
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "The logo could not be saved."
+msgstr "Не вдалося зберегти логотип."
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "The team page's wording, logo and style are set in the Theme tab."
+msgstr "Текст, логотип і стиль сторінки команди налаштовуються на вкладці «Тема»."
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "This file is not a valid image."
+msgstr "Цей файл не є коректним зображенням."
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "Upload"
+msgstr "Завантажити"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "Upload a logo"
+msgstr "Завантажити логотип"
+
+#: lib/tymeslot_web/live/dashboard/theme_settings/team_logo_component.ex
+#, elixir-autogen, elixir-format
+msgid "Uploading..."
+msgstr "Завантаження…"
+
+#: lib/tymeslot_web/live/dashboard/teams/teams_component.ex
+#, elixir-autogen, elixir-format
+msgid "Not offered by this team"
+msgstr "Не пропонуються цією командою"

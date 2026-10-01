@@ -52,10 +52,6 @@ defmodule TymeslotWeb.Themes.Shared.StateMachineHelpers do
   Only allows navigation to previous or current steps.
   """
   @spec can_navigate_to_step?(Phoenix.LiveView.Socket.t(), atom(), map()) :: boolean()
-  # A team page has no overview: it books its one settings meeting type, which
-  # would otherwise show as a lone card there.
-  def can_navigate_to_step?(%{assigns: %{team: %{}}}, :overview, _states), do: false
-
   def can_navigate_to_step?(socket, target_state, states) do
     current_state = socket.assigns[:current_state]
 

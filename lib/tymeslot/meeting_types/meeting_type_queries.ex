@@ -6,12 +6,28 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeQueries do
   alias Tymeslot.MeetingTypes.MeetingTypeSchema
   alias Tymeslot.Repo
 
-  # The listings below are a user's *own* meeting types. A team's booking
-  # settings are stored as a meeting type owned by the team's owner and flagged
-  # with `team_id` (see `Tymeslot.Teams`); it is reachable only through the
-  # team page, so every personal listing leaves it out. Lookups by id
-  # (`get_meeting_type/2`) keep it, because the booking submit re-reads the
-  # type that way.
+  # The listings below are a user's *own* meeting types. A team meeting type is
+  # flagged `is_team_type` (see `Tymeslot.Teams`): it is offered only on the
+  # pages of the user's teams that list it, so every personal listing leaves
+  # it out and `list_user_team_meeting_types/1` lists them instead. Lookups by
+  # id (`get_meeting_type/2`) keep them, because the booking submit and the
+  # dashboard editor re-read a type that way.
+
+  @doc """
+  Gets every team meeting type `user_id` owns (active and inactive), ordered
+  by sort_order, each with the teams offering it.
+  """
+  @spec list_user_team_meeting_types(integer()) :: [MeetingTypeSchema.t()]
+  def list_user_team_meeting_types(user_id) do
+    query =
+      from(mt in MeetingTypeSchema,
+        where: mt.user_id == ^user_id and mt.is_team_type,
+        order_by: [asc: mt.sort_order, asc: mt.name],
+        preload: [:video_integration, :calendar_integration, :teams]
+      )
+
+    Repo.all(query)
+  end
 
   @doc """
   Gets all active meeting types for a user, ordered by sort_order.
@@ -20,7 +36,7 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeQueries do
   def list_active_meeting_types(user_id) do
     query =
       from(mt in MeetingTypeSchema,
-        where: mt.user_id == ^user_id and mt.is_active == true and is_nil(mt.team_id),
+        where: mt.user_id == ^user_id and mt.is_active == true and not mt.is_team_type,
         order_by: [asc: mt.sort_order, asc: mt.name],
         preload: [:video_integration, :calendar_integration]
       )
@@ -39,7 +55,7 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeQueries do
       from(mt in MeetingTypeSchema,
         where:
           mt.user_id == ^user_id and mt.is_active == true and mt.is_private == false and
-            is_nil(mt.team_id),
+            not mt.is_team_type,
         order_by: [asc: mt.sort_order, asc: mt.name],
         preload: [:video_integration, :calendar_integration]
       )
@@ -54,7 +70,7 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeQueries do
   def list_all_meeting_types(user_id) do
     query =
       from(mt in MeetingTypeSchema,
-        where: mt.user_id == ^user_id and is_nil(mt.team_id),
+        where: mt.user_id == ^user_id and not mt.is_team_type,
         order_by: [asc: mt.sort_order, asc: mt.name],
         preload: [:video_integration, :calendar_integration]
       )
@@ -180,16 +196,14 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeQueries do
 
   @doc """
   Returns the names of all existing meeting types for a user as a MapSet.
-
-  Includes a team's settings row: names are unique per user across both, so a
-  caller picking a fresh name has to avoid that one too.
+  Team meeting types are named within their team, so they are left out.
   """
   @spec existing_names(integer()) :: MapSet.t()
   def existing_names(user_id) do
     MapSet.new(
       Repo.all(
         from(mt in MeetingTypeSchema,
-          where: mt.user_id == ^user_id,
+          where: mt.user_id == ^user_id and not mt.is_team_type,
           select: mt.name
         )
       )
@@ -244,7 +258,7 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeQueries do
     result =
       Repo.one(
         from(mt in MeetingTypeSchema,
-          where: mt.user_id == ^user_id and is_nil(mt.team_id),
+          where: mt.user_id == ^user_id and not mt.is_team_type,
           select: count(mt.id)
         )
       )
@@ -262,7 +276,7 @@ defmodule Tymeslot.MeetingTypes.MeetingTypeQueries do
   def has_active_meeting_types?(user_id) do
     Repo.exists?(
       from(mt in MeetingTypeSchema,
-        where: mt.user_id == ^user_id and mt.is_active == true and is_nil(mt.team_id)
+        where: mt.user_id == ^user_id and mt.is_active == true and not mt.is_team_type
       )
     )
   end

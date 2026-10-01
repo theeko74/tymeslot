@@ -33,7 +33,7 @@ defmodule Tymeslot.Bookings.CreateTeamBookingTest do
       duration: 60,
       user_timezone: "Etc/UTC",
       organizer_user_id: team.owner_user_id,
-      meeting_type_id: team.meeting_type.id,
+      meeting_type_id: hd(team.meeting_types).id,
       team_id: team.id
     }
   end

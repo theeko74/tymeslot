@@ -184,7 +184,9 @@
   opacity: 1 !important;
 }
 
-.card-glass-unavailable button[role="switch"] span {
+/* The round slider only: its icon spans fill it edge to edge, so painting
+   them too drew a white square over the round knob. */
+.card-glass-unavailable button[role="switch"] > .status-toggle-slider {
   background: rgba(255, 255, 255, 0.95) !important;
 }
 

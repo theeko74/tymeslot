@@ -49,11 +49,14 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.BookingTextForm do
   alias Tymeslot.Profiles.InputValidation
   alias Tymeslot.Profiles.ProfileSchema
   alias Tymeslot.Security.RateLimiter
+  alias Tymeslot.Teams
+  alias Tymeslot.Teams.TeamSchema
   alias Tymeslot.Themes.Catalog
   alias Tymeslot.Validation.Constraints
   alias TymeslotWeb.Components.UI.StatusSwitch
   alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
   alias TymeslotWeb.Live.Scheduling.PreviewMode
+  alias TymeslotWeb.Live.Scheduling.TeamHelpers
   alias TymeslotWeb.Themes.Shared.BookingText
 
   @text_fields [:booking_heading, :booking_greeting, :booking_instruction]
@@ -70,35 +73,64 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.BookingTextForm do
   def update(%{retry_save: true}, socket), do: {:ok, retry(socket)}
 
   def update(assigns, socket) do
+    # Once mounted, the form keeps the team it saved last: the parent's copy
+    # can be older than this form's latest save.
+    assigns = if socket.assigns[:team], do: Map.delete(assigns, :team), else: assigns
+
     socket =
       socket
       |> assign(assigns)
+      |> assign_new(:team, fn -> nil end)
+      |> assign_new(:parent, fn -> nil end)
       |> assign_new(:preview_token, fn -> System.system_time() end)
       |> assign_new(:save_status, fn -> :idle end)
       |> assign_new(:pending_params, fn -> nil end)
       |> assign_new(:retry_scheduled?, fn -> false end)
-      |> assign_form(ProfileSchema.booking_text_changeset(assigns.profile, %{}))
 
-    {:ok, socket}
+    {:ok, assign_form(socket, changeset(socket.assigns, %{}))}
   end
+
+  # The form edits a team page's wording when given a `team`, the user's own
+  # page's otherwise. Both records carry the same four fields
+  # (`Tymeslot.Validation.BookingText`).
+  defp changeset(%{team: %TeamSchema{} = team}, params),
+    do: TeamSchema.booking_text_changeset(team, params)
+
+  defp changeset(%{profile: profile}, params),
+    do: ProfileSchema.booking_text_changeset(profile, params)
+
+  defp subject(%{team: %TeamSchema{} = team}), do: team
+  defp subject(%{profile: profile}), do: profile
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div id={@id} class="mt-16">
-      <.section_header
-        icon="hero-chat-bubble-bottom-center-text"
-        title={dgettext("dashboard_appearance", "Booking Page Text")}
-      />
-
-      <div class="mb-10 max-w-2xl">
-        <p class="text-xl text-tymeslot-500 font-medium leading-relaxed">
+    <div id={@id} class={if @team, do: "mt-6", else: "mt-16"}>
+      <%= if @team do %>
+        <h4 class="text-token-lg font-black text-tymeslot-900 tracking-tight">
+          {dgettext("dashboard_teams", "Team page text")}
+        </h4>
+        <p class="mb-6 text-tymeslot-500 font-medium max-w-2xl">
           {dgettext(
-            "dashboard_appearance",
-            "Replace the wording that introduces you at the top of your booking page. Applies to every theme."
+            "dashboard_teams",
+            "Replace the wording that introduces the team at the top of its page. Applies to every theme."
           )}
         </p>
-      </div>
+      <% else %>
+        <.section_header
+          icon="hero-chat-bubble-bottom-center-text"
+          title={dgettext("dashboard_appearance", "Booking Page Text")}
+        />
+
+        <div class="mb-10 max-w-2xl">
+          <p class="text-xl text-tymeslot-500 font-medium leading-relaxed">
+            {dgettext(
+              "dashboard_appearance",
+              "Replace the wording that introduces you at the top of your booking page. Applies to every theme."
+            )}
+          </p>
+        </div>
+      <% end %>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
         <%!-- `phx-submit` exists only so pressing Enter in a field flushes the
@@ -155,7 +187,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.BookingTextForm do
               phx-debounce="600"
               maxlength={Constraints.booking_heading_max_length()}
               label={dgettext("dashboard_appearance", "Heading")}
-              placeholder={BookingText.default_heading(current_theme_key(@profile), name(@profile))}
+              placeholder={default_for(:booking_heading, assigns)}
             />
 
             <.input
@@ -166,7 +198,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.BookingTextForm do
               phx-debounce="600"
               maxlength={Constraints.booking_welcome_line_max_length()}
               label={dgettext("dashboard_appearance", "Greeting")}
-              placeholder={BookingText.default_greeting(name(@profile))}
+              placeholder={greeting_placeholder(assigns)}
             />
 
             <.input
@@ -177,7 +209,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.BookingTextForm do
               phx-debounce="600"
               maxlength={Constraints.booking_welcome_line_max_length()}
               label={dgettext("dashboard_appearance", "Instruction")}
-              placeholder={BookingText.default_instruction()}
+              placeholder={default_for(:booking_instruction, assigns)}
             />
 
             <.info_box variant={:info}>
@@ -188,10 +220,15 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.BookingTextForm do
                 <li :for={{theme_name, theme_key} <- heading_defaults()}>
                   <span class="font-semibold">{theme_name}</span>
                   <span class="text-tymeslot-500">
-                    &ldquo;{BookingText.default_heading(theme_key, name(@profile))}&rdquo;
+                    &ldquo;{theme_heading(assigns, theme_key)}&rdquo;
                   </span>
-                  <span :if={theme_key == current_theme_key(@profile)} class="text-turquoise-600">
-                    {dgettext("dashboard_appearance", "(your current theme)")}
+                  <span
+                    :if={theme_key == current_theme_key(subject(assigns))}
+                    class="text-turquoise-600"
+                  >
+                    {if @team,
+                      do: dgettext("dashboard_teams", "(the team's current theme)"),
+                      else: dgettext("dashboard_appearance", "(your current theme)")}
                   </span>
                 </li>
               </ul>
@@ -214,7 +251,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.BookingTextForm do
           <p class="text-token-sm font-bold text-tymeslot-600 uppercase tracking-wider">
             {dgettext("dashboard_appearance", "Live Preview")}
           </p>
-          <%= if preview_url = preview_url(@profile, @preview_token) do %>
+          <%= if preview_url = preview_url(assigns) do %>
             <iframe
               src={preview_url}
               title={dgettext("dashboard_appearance", "Booking page preview")}
@@ -285,6 +322,10 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.BookingTextForm do
     {:noreply, persist(socket, params)}
   end
 
+  def handle_event("save", %{"team_schema" => params}, socket) do
+    {:noreply, persist(socket, params)}
+  end
+
   # Off clears the wording, on seeds it from the defaults currently in force.
   # Both are written straight away rather than staged, because the switch has no
   # save button behind it: whatever it shows has to be what is stored.
@@ -292,7 +333,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.BookingTextForm do
     turning_on = not enabled?(socket.assigns.form)
 
     params =
-      socket.assigns.profile
+      socket.assigns
       |> text_params(turning_on)
       |> Map.put("booking_text_enabled", turning_on)
 
@@ -301,24 +342,48 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.BookingTextForm do
 
   # Clearing is what "reset to default" means at the storage layer: with the
   # columns null, every theme falls back to its own translated wording.
-  defp text_params(_profile, false), do: Map.new(@text_fields, &{to_string(&1), nil})
+  defp text_params(_assigns, false), do: Map.new(@text_fields, &{to_string(&1), nil})
 
   # Seeded from the defaults on the way back on, so the record is valid the
   # instant the switch flips. Anything already stored wins, which only happens
   # for a profile whose columns predate the switch.
-  defp text_params(profile, true) do
+  defp text_params(assigns, true) do
+    record = subject(assigns)
+
     Map.new(@text_fields, fn field ->
-      {to_string(field), Map.get(profile, field) || default_for(field, profile)}
+      {to_string(field), Map.get(record, field) || default_for(field, assigns)}
     end)
   end
 
-  defp default_for(:booking_heading, profile),
+  # The line each field replaces while the customisation is off. A team page
+  # opens with the team's name, its members and its description
+  # (`TymeslotWeb.Live.Scheduling.TeamHelpers`), whatever the theme.
+  defp default_for(:booking_heading, %{team: %TeamSchema{} = team}), do: team.name
+
+  defp default_for(:booking_greeting, %{team: %TeamSchema{} = team}),
+    do: TeamHelpers.default_greeting(team, Teams.member_profiles(team))
+
+  defp default_for(:booking_instruction, %{team: %TeamSchema{} = team}),
+    do: team.description || BookingText.default_instruction()
+
+  defp default_for(:booking_heading, %{profile: profile}),
     do: BookingText.default_heading(current_theme_key(profile), name(profile))
 
-  defp default_for(:booking_greeting, profile),
+  defp default_for(:booking_greeting, %{profile: profile}),
     do: BookingText.seed_greeting(name(profile))
 
-  defp default_for(:booking_instruction, _profile), do: BookingText.default_instruction()
+  defp default_for(:booking_instruction, _assigns), do: BookingText.default_instruction()
+
+  defp greeting_placeholder(%{team: %TeamSchema{}} = assigns),
+    do: default_for(:booking_greeting, assigns)
+
+  defp greeting_placeholder(%{profile: profile}), do: BookingText.default_greeting(name(profile))
+
+  # What a custom heading replaces in a given theme.
+  defp theme_heading(%{team: %TeamSchema{} = team}, _theme_key), do: team.name
+
+  defp theme_heading(%{profile: profile}, theme_key),
+    do: BookingText.default_heading(theme_key, name(profile))
 
   # Clearing on the way in is what makes a newer edit replace a held one: this
   # attempt supersedes it, and only a throttle puts anything back.
@@ -384,13 +449,33 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.BookingTextForm do
   end
 
   defp invalid_changeset(socket, params, field_errors) do
-    changeset = ProfileSchema.booking_text_changeset(socket.assigns.profile, params)
+    changeset = changeset(socket.assigns, params)
 
     field_errors
     |> Enum.reduce(changeset, fn {field, message}, acc ->
       Changeset.add_error(acc, field, message)
     end)
     |> Map.put(:action, :insert)
+  end
+
+  defp save(%{assigns: %{team: %TeamSchema{} = team}} = socket, params) do
+    case Teams.update_booking_text(team.id, socket.assigns.profile.user_id, params) do
+      {:ok, team} ->
+        # The parent lists the teams; it is told so its copy stays current.
+        if socket.assigns.parent, do: send_update(socket.assigns.parent, team_updated: team)
+
+        socket
+        |> assign(:team, team)
+        |> assign(:preview_token, System.system_time())
+        |> assign(:save_status, :saved)
+        |> assign_form(TeamSchema.booking_text_changeset(team, %{}))
+
+      {:error, %Changeset{} = changeset} ->
+        reject(socket, changeset)
+
+      {:error, :not_found} ->
+        assign(socket, :save_status, :error)
+    end
   end
 
   defp save(socket, params) do
@@ -443,6 +528,13 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.BookingTextForm do
 
   defp name(profile), do: Profiles.display_name(profile)
 
+  defp current_theme_key(%TeamSchema{} = team) do
+    case Catalog.id_to_key(Teams.booking_theme(team)) do
+      {:ok, key} -> key
+      {:error, _reason} -> Catalog.default_key()
+    end
+  end
+
   defp current_theme_key(profile) do
     case Catalog.id_to_key(profile.booking_theme) do
       {:ok, key} -> key
@@ -459,10 +551,14 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.BookingTextForm do
     |> Enum.map(fn {key, facts} -> {facts.name, key} end)
   end
 
-  defp preview_url(%{username: username, user_id: user_id}, token)
+  # `t` only changes to reload the frame after a save.
+  defp preview_url(%{team: %TeamSchema{} = team, preview_token: token}),
+    do: PreviewMode.team_path(team.slug, team.owner_user_id) <> "&t=#{token}"
+
+  defp preview_url(%{profile: %{username: username, user_id: user_id}, preview_token: token})
        when is_binary(username) and is_integer(user_id) do
     PreviewMode.owner_path(username, user_id) <> "&t=#{token}"
   end
 
-  defp preview_url(_profile, _token), do: nil
+  defp preview_url(_assigns), do: nil
 end

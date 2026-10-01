@@ -5,14 +5,22 @@ defmodule TymeslotWeb.Helpers.ThemeUploadHelper do
 
   alias Phoenix.LiveView
   alias Tymeslot.ThemeCustomizations
+  alias Tymeslot.ThemeCustomizations.Owner
   alias Tymeslot.Workers.VideoTranscoder
+
+  @typedoc """
+  Whose customisation the upload belongs to: a profile, or an
+  `Tymeslot.ThemeCustomizations.Owner` (a profile id or a team).
+  """
+  @type owner :: map() | Owner.t()
 
   @doc """
   Process background image upload with logging.
   """
-  @spec process_background_image_upload(Phoenix.LiveView.Socket.t(), map()) ::
+  @spec process_background_image_upload(Phoenix.LiveView.Socket.t(), owner()) ::
           {:ok, String.t()} | {:error, String.t()}
-  def process_background_image_upload(socket, profile) do
+  def process_background_image_upload(socket, owner) do
+    key = owner_key(owner)
     theme_id = get_theme_id(socket)
 
     uploaded_files =
@@ -20,7 +28,7 @@ defmodule TymeslotWeb.Helpers.ThemeUploadHelper do
         # We must copy the file INSIDE this callback, before it gets deleted
         file_info = %{path: temp_path, filename: entry.client_name}
 
-        case ThemeCustomizations.store_background_image(profile.id, theme_id, file_info) do
+        case ThemeCustomizations.store_background_image(key, theme_id, file_info) do
           {:ok, stored_path} ->
             {:ok, stored_path}
 
@@ -40,7 +48,7 @@ defmodule TymeslotWeb.Helpers.ThemeUploadHelper do
           "background_image_path" => stored_path
         }
 
-        case ThemeCustomizations.upsert_theme_customization(profile.id, theme_id, attrs) do
+        case ThemeCustomizations.upsert_theme_customization(key, theme_id, attrs) do
           {:ok, _customization} ->
             {:ok, "Background image uploaded successfully"}
 
@@ -59,11 +67,11 @@ defmodule TymeslotWeb.Helpers.ThemeUploadHelper do
   @doc """
   Process background video upload with logging.
   """
-  @spec process_background_video_upload(Phoenix.LiveView.Socket.t(), map()) ::
+  @spec process_background_video_upload(Phoenix.LiveView.Socket.t(), owner()) ::
           {:ok, String.t()} | {:error, String.t()}
-  def process_background_video_upload(socket, profile) do
+  def process_background_video_upload(socket, owner) do
     if transcoder_impl().available?() do
-      do_process_background_video_upload(socket, profile)
+      do_process_background_video_upload(socket, owner_key(owner))
     else
       # ffmpeg is auto-detected at transcode time in the background worker, so
       # without this guard the upload would report success and then silently
@@ -75,7 +83,10 @@ defmodule TymeslotWeb.Helpers.ThemeUploadHelper do
     end
   end
 
-  defp do_process_background_video_upload(socket, profile) do
+  defp owner_key(%{id: profile_id}), do: profile_id
+  defp owner_key(owner), do: owner
+
+  defp do_process_background_video_upload(socket, key) do
     theme_id = get_theme_id(socket)
 
     uploaded_files =
@@ -83,7 +94,7 @@ defmodule TymeslotWeb.Helpers.ThemeUploadHelper do
         # We must copy the file INSIDE this callback, before it gets deleted
         file_info = %{path: temp_path, filename: entry.client_name}
 
-        case ThemeCustomizations.store_background_video(profile.id, theme_id, file_info) do
+        case ThemeCustomizations.store_background_video(key, theme_id, file_info) do
           {:ok, stored_path} ->
             {:ok, stored_path}
 
@@ -104,14 +115,14 @@ defmodule TymeslotWeb.Helpers.ThemeUploadHelper do
           "video_processing" => "pending"
         }
 
-        case ThemeCustomizations.upsert_theme_customization(profile.id, theme_id, attrs) do
+        case ThemeCustomizations.upsert_theme_customization(key, theme_id, attrs) do
           {:ok, customization} ->
             case VideoTranscoder.enqueue(customization.id, stored_path) do
               {:ok, _job} ->
                 :ok
 
               {:error, _reason} ->
-                ThemeCustomizations.upsert_theme_customization(profile.id, theme_id, %{
+                ThemeCustomizations.upsert_theme_customization(key, theme_id, %{
                   "video_processing" => "failed"
                 })
             end

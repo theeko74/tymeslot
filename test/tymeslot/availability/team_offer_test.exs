@@ -36,7 +36,7 @@ defmodule Tymeslot.Availability.TeamOfferTest do
     |> TeamOffer.requests(%{
       profile: nil,
       user_timezone: "Etc/UTC",
-      meeting_type: team.meeting_type
+      meeting_type: hd(team.meeting_types)
     })
   end
 

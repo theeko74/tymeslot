@@ -54,6 +54,7 @@ defmodule TymeslotWeb.Dashboard.ComponentDispatch do
   def component_for_action(:automation, _components), do: AutomationSettingsComponent
   def component_for_action(:theme, _components), do: ThemeSettingsComponent
   def component_for_action(:theme_customization, _components), do: ThemeSettingsComponent
+  def component_for_action(:team_theme_customization, _components), do: ThemeSettingsComponent
   def component_for_action(:meetings, _components), do: BookingsManagementComponent
   def component_for_action(:polls, _components), do: PollsComponent
   def component_for_action(:teams, _components), do: TeamsComponent

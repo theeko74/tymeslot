@@ -12,15 +12,16 @@ defmodule TymeslotWeb.Dashboard.Teams.TeamsComponent do
   use Gettext, backend: TymeslotWeb.Gettext
 
   alias Ecto.Changeset
+  alias Tymeslot.MeetingTypes
   alias Tymeslot.Profiles
   alias Tymeslot.Teams
   alias Tymeslot.Utils.UrlBuilder
-  alias Tymeslot.Validation.Constraints
   alias TymeslotWeb.Components.CoreComponents.Forms
+  alias TymeslotWeb.Dashboard.MeetingSettings.Card
   alias TymeslotWeb.Dashboard.Teams.DeleteTeamModal
   alias TymeslotWeb.Live.Shared.Flash
 
-  @empty_form %{"name" => "", "slug" => "", "description" => "", "duration_minutes" => "30"}
+  @empty_form %{"name" => "", "slug" => "", "description" => ""}
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
@@ -82,6 +83,7 @@ defmodule TymeslotWeb.Dashboard.Teams.TeamsComponent do
           current_user={@current_user}
           member_email={@member_email}
           member_error={@member_error}
+          team_types={@team_types}
           myself={@myself}
         />
 
@@ -169,17 +171,12 @@ defmodule TymeslotWeb.Dashboard.Teams.TeamsComponent do
           errors={Map.get(@errors, :description, [])}
         />
 
-        <.input
-          type="number"
-          name="team[duration_minutes]"
-          label={dgettext("dashboard_teams", "Meeting duration (minutes)")}
-          value={@form["duration_minutes"]}
-          min={Constraints.duration_minutes_opts()[:greater_than_or_equal_to]}
-          max={Constraints.duration_minutes_opts()[:less_than_or_equal_to]}
-          required
-          errors={Map.get(@errors, :duration_minutes, [])}
-          icon="hero-clock"
-        />
+        <p class="text-token-sm text-tymeslot-600">
+          {dgettext(
+            "dashboard_teams",
+            "The team page's wording, logo and style are set in the Theme tab."
+          )}
+        </p>
 
         <div class="flex justify-end gap-3">
           <button type="button" phx-click="cancel_form" phx-target={@myself} class="btn btn-secondary">
@@ -214,10 +211,11 @@ defmodule TymeslotWeb.Dashboard.Teams.TeamsComponent do
               "%{count} member",
               "%{count} members",
               length(@team.members)
-            )} · {dgettext(
+            )} · {dngettext(
               "dashboard_teams",
-              "%{minutes} min",
-              minutes: @team.duration_minutes
+              "%{count} meeting type",
+              "%{count} meeting types",
+              length(@team.meeting_types)
             )}
           </p>
         </div>
@@ -260,6 +258,7 @@ defmodule TymeslotWeb.Dashboard.Teams.TeamsComponent do
   attr :current_user, :any, required: true
   attr :member_email, :string, required: true
   attr :member_error, :string, default: nil
+  attr :team_types, :list, required: true
   attr :myself, :any, required: true
 
   defp team_detail(assigns) do
@@ -309,6 +308,72 @@ defmodule TymeslotWeb.Dashboard.Teams.TeamsComponent do
       </div>
 
       <p :if={@team.description} class="text-tymeslot-600">{@team.description}</p>
+
+      <div id="team-offered-types" class="rounded-token-xl bg-tymeslot-50 px-4 py-3 space-y-3">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <p class="text-token-sm text-tymeslot-700">
+            {dngettext(
+              "dashboard_teams",
+              "This team offers %{count} meeting type.",
+              "This team offers %{count} meeting types.",
+              length(@team.meeting_types)
+            )}
+          </p>
+          <.link
+            :if={@owner?}
+            navigate={~p"/dashboard/meeting-settings"}
+            class="btn btn-secondary btn-sm"
+          >
+            {dgettext("dashboard_teams", "Manage meeting types")}
+          </.link>
+        </div>
+
+        <%!-- The owner picks which of their team meeting types this team
+             offers, on the same cards as the meeting settings, and drags the
+             offered ones into the order the team page lists them in. --%>
+        <div
+          :if={@owner? && @team.meeting_types != []}
+          id="team-offered-sortable-list"
+          phx-hook="MeetingTypeSortable"
+          data-target={@myself}
+          phx-target={@myself}
+          class="flex flex-col space-y-2"
+        >
+          <div
+            :for={type <- @team.meeting_types}
+            draggable="true"
+            data-meeting-type-id={type.id}
+            class="cursor-move"
+          >
+            <Card.meeting_type_card type={type} myself={@myself} variant={:offer} offered />
+          </div>
+        </div>
+
+        <div :if={@owner? && not_offered(@team, @team_types) != []} class="space-y-2">
+          <p class="text-token-xs font-bold uppercase tracking-wider text-tymeslot-500 pt-2">
+            {dgettext("dashboard_teams", "Not offered by this team")}
+          </p>
+          <Card.meeting_type_card
+            :for={type <- not_offered(@team, @team_types)}
+            type={type}
+            myself={@myself}
+            variant={:offer}
+            offered={false}
+            sortable={false}
+          />
+        </div>
+
+        <p :if={@owner? && @team_types == []} class="text-token-sm text-tymeslot-600">
+          {dgettext(
+            "dashboard_teams",
+            "You have no team meeting type yet. Create one in the meeting settings, then offer it here."
+          )}
+        </p>
+
+        <ul :if={!@owner? && @team.meeting_types != []} class="space-y-1">
+          <li :for={type <- @team.meeting_types} class="text-tymeslot-800">{type.name}</li>
+        </ul>
+      </div>
 
       <ul class="divide-y divide-tymeslot-100">
         <li :for={member <- @team.members} class="py-3 flex items-center justify-between gap-3">
@@ -380,8 +445,7 @@ defmodule TymeslotWeb.Dashboard.Teams.TeamsComponent do
     form = %{
       "name" => team.name,
       "slug" => team.slug,
-      "description" => team.description || "",
-      "duration_minutes" => to_string(team.duration_minutes)
+      "description" => team.description || ""
     }
 
     {:noreply, assign(socket, form_mode: :edit, form: form, errors: %{}, slug_touched: true)}
@@ -427,13 +491,6 @@ defmodule TymeslotWeb.Dashboard.Teams.TeamsComponent do
          assign(socket,
            form: Map.merge(socket.assigns.form, params),
            errors: changeset_errors(changeset)
-         )}
-
-      {:error, :name_taken} ->
-        {:noreply,
-         assign(socket,
-           form: Map.merge(socket.assigns.form, params),
-           errors: %{name: [Teams.error_message(:name_taken)]}
          )}
 
       {:error, reason} ->
@@ -511,7 +568,47 @@ defmodule TymeslotWeb.Dashboard.Teams.TeamsComponent do
      |> load_teams()}
   end
 
+  # Offers or withdraws one of the owner's team meeting types on the selected team.
+  def handle_event("toggle_team_type", %{"id" => type_id}, socket) do
+    team = socket.assigns.selected_team
+    user_id = socket.assigns.current_user.id
+    type_id = String.to_integer(type_id)
+    offered? = Enum.any?(team.meeting_types, &(&1.id == type_id))
+
+    result =
+      if offered?,
+        do: Teams.withdraw_meeting_type(team.id, user_id, type_id),
+        else: Teams.offer_meeting_type(team.id, user_id, type_id)
+
+    case result do
+      {:ok, _team} ->
+        {:noreply, load_teams(socket)}
+
+      {:error, reason} ->
+        Flash.error(Teams.error_message(reason))
+        {:noreply, socket}
+    end
+  end
+
+  # Orders the selected team's meeting types, dragged on its page.
+  def handle_event("reorder_meeting_types", %{"ids" => ids}, socket) when is_list(ids) do
+    team = socket.assigns.selected_team
+    type_ids = for id <- ids, is_integer(id), do: id
+
+    case Teams.reorder_meeting_types(team.id, socket.assigns.current_user.id, type_ids) do
+      {:ok, _team} ->
+        {:noreply, load_teams(socket)}
+
+      {:error, reason} ->
+        Flash.error(Teams.error_message(reason))
+        {:noreply, socket}
+    end
+  end
+
   # --- Private -------------------------------------------------------------
+
+  # The owner's team meeting types this team does not offer yet.
+  defp not_offered(team, team_types), do: Enum.reject(team_types, &Teams.offers?(team, &1))
 
   defp load_teams(socket) do
     teams = Teams.list_teams_for_user(socket.assigns.current_user.id)
@@ -521,6 +618,10 @@ defmodule TymeslotWeb.Dashboard.Teams.TeamsComponent do
     |> assign(:teams, teams)
     |> assign(:selected_team, selected)
     |> assign(:selected_team_id, selected && selected.id)
+    |> assign(
+      :team_types,
+      MeetingTypes.list_user_team_meeting_types(socket.assigns.current_user.id)
+    )
   end
 
   defp public_url(team), do: UrlBuilder.base_url() <> Teams.public_path(team)

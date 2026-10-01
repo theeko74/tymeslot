@@ -69,6 +69,9 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
      |> assign(:editing_location_mode, :add)
      |> assign(:custom_questions_allowed, true)
      |> assign(:payments_feature_enabled, false)
+     # Set by the parent for a team's meeting type, whose form offers neither
+     # payment nor a schedule of its own.
+     |> assign(:team_type, false)
      |> assign(:payments_charges_enabled, false)
      |> assign(:payment_currency, "usd")
      |> assign(:payment_currency_minimum_cents, 50)

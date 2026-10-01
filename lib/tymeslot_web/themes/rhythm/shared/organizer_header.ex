@@ -7,6 +7,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Shared.OrganizerHeader do
   use Gettext, backend: TymeslotWeb.Gettext
 
   alias Tymeslot.{Demo, Profiles}
+  alias TymeslotWeb.Live.Scheduling.TeamHelpers
   alias TymeslotWeb.Themes.Shared.LocalizationHelpers
 
   @doc """
@@ -31,16 +32,18 @@ defmodule TymeslotWeb.Themes.Rhythm.Shared.OrganizerHeader do
     <div class="organizer-profile-small">
       <img
         src={Demo.avatar_url(@organizer_profile, :thumb)}
-        alt={Demo.avatar_alt_text(@organizer_profile)}
+        alt={if @team, do: @team.name, else: Demo.avatar_alt_text(@organizer_profile)}
         class="avatar-image-small"
       />
       <div class="organizer-info-small">
         <div class="organizer-name">{dgettext("booking", "Schedule with")}</div>
         <div class="organizer-name-full">
-          {if @team, do: @team.name, else: Profiles.display_name(@organizer_profile) || ""}
+          {if @team,
+            do: TeamHelpers.heading(%{team: @team}),
+            else: Profiles.display_name(@organizer_profile) || ""}
         </div>
         <div :if={@team} class="meeting-duration">
-          {Enum.map_join(@team_member_profiles, ", ", &Profiles.display_name/1)}
+          {TeamHelpers.greeting(%{team: @team, team_member_profiles: @team_member_profiles})}
         </div>
         <div class="meeting-duration">
           <%= if @meeting_type do %>

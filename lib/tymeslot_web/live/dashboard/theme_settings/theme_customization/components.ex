@@ -28,6 +28,8 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomization.Components do
 
   @spec toolbar(map()) :: Phoenix.LiveView.Rendered.t()
   def toolbar(assigns) do
+    assigns = assign(assigns, :preview_href, preview_href(assigns))
+
     ~H"""
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
       <.section_header
@@ -37,9 +39,9 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomization.Components do
       />
 
       <div class="flex items-center justify-between gap-3 md:justify-start">
-        <%= if @profile && @profile.username do %>
+        <%= if @preview_href do %>
           <a
-            href={PreviewMode.owner_path(@profile.username, @profile.user_id, theme: @theme_id)}
+            href={@preview_href}
             target="_blank"
             rel="noopener noreferrer"
             class="btn btn-secondary py-2.5 px-5 text-token-sm"
@@ -80,6 +82,17 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomization.Components do
     </div>
     """
   end
+
+  # A team's customisation previews on the team page, a profile's on the
+  # owner's own page, both through a signed preview link.
+  defp preview_href(%{team: %{slug: slug, owner_user_id: owner_id}, theme_id: theme_id}),
+    do: PreviewMode.team_path(slug, owner_id, theme: theme_id)
+
+  defp preview_href(%{profile: %{username: username, user_id: user_id}, theme_id: theme_id})
+       when is_binary(username),
+       do: PreviewMode.owner_path(username, user_id, theme: theme_id)
+
+  defp preview_href(_assigns), do: nil
 
   @spec color_scheme_section(map()) :: Phoenix.LiveView.Rendered.t()
   def color_scheme_section(assigns) do

@@ -12,7 +12,10 @@ defmodule Tymeslot.Integrations.Calendar.CalendarEventBuilder do
 
   alias Tymeslot.CustomFields.AnswerRenderer
   alias Tymeslot.Emails.RecipientLocale
+  alias Tymeslot.Integrations.Calendar.Attendee
+  alias Tymeslot.Meetings.CoHostQueries
   alias Tymeslot.Meetings.MeetingState
+  alias Tymeslot.Profiles
   alias Tymeslot.Utils.MapKeys
   alias Tymeslot.Utils.ReminderUtils
   alias TymeslotWeb.Endpoint
@@ -43,7 +46,7 @@ defmodule Tymeslot.Integrations.Calendar.CalendarEventBuilder do
   """
   @spec build_event_data(map()) :: map()
   def build_event_data(meeting) do
-    %{
+    event = %{
       uid: meeting.calendar_uid,
       summary: meeting.title,
       description: build_event_description(meeting),
@@ -61,7 +64,37 @@ defmodule Tymeslot.Integrations.Calendar.CalendarEventBuilder do
       attendee_email: meeting.attendee_email,
       reminders: build_reminders(meeting)
     }
+
+    maybe_put_team_attendees(event, meeting)
   end
+
+  # A team meeting is written once, to the calendar the team meeting type
+  # names (one of the owner's). Its co-hosts, the team's other members, are
+  # listed as attendees beside the booker, so the event reaches their own
+  # calendars too: every provider mapper reads `:attendees` in preference to
+  # the single `attendee_email` (Google, Outlook, CalDAV). They are marked as
+  # having accepted, being hosts rather than invitees. The provider writes stay
+  # silent as for any booking, so nobody receives a provider invitation email:
+  # co-hosts are told by Tymeslot (`Tymeslot.Notifications.TeamNotifications`).
+  defp maybe_put_team_attendees(event_data, %{team_id: team_id, id: meeting_id} = meeting)
+       when is_integer(team_id) and is_binary(meeting_id) do
+    co_hosts =
+      meeting_id
+      |> CoHostQueries.list_for_meeting()
+      |> Enum.map(fn %{user: user} ->
+        Attendee.new(
+          email: user.email,
+          display_name: Profiles.display_name(user.profile) || user.name,
+          response_status: :accepted
+        )
+      end)
+
+    booker = Attendee.new(email: meeting.attendee_email, display_name: meeting.attendee_name)
+
+    Map.put(event_data, :attendees, [booker | co_hosts])
+  end
+
+  defp maybe_put_team_attendees(event_data, _meeting), do: event_data
 
   # A booking held for the host's manual approval is written to their calendar
   # as TENTATIVE: the slot has to be visibly taken, or the availability grid —

@@ -263,8 +263,9 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm.FormView do
           hidden={@is_edit && @active_tab != "booking"}
           class={panel_class(@is_edit, @active_tab, "booking")}
         >
+          <%!-- A team meeting type cannot be paid (`MeetingTypeSchema` enforces it). --%>
           <.payments_section
-            :if={@payments_feature_enabled}
+            :if={@payments_feature_enabled && !@team_type}
             charges_enabled={@payments_charges_enabled}
             payment_required={@payment_required}
             payment_price={@payment_price}
@@ -291,12 +292,21 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm.FormView do
             myself={@myself}
           />
 
+          <%!-- A team meeting type names no schedule: each member is booked
+               against their own default one. --%>
           <.availability_section
+            :if={!@team_type}
             schedules={@schedules}
             default_schedule_name={@default_schedule_name}
             selected_availability_schedule_id={@selected_availability_schedule_id}
             myself={@myself}
           />
+          <p :if={@team_type} class="text-token-sm text-tymeslot-600">
+            {dgettext(
+              "dashboard_teams",
+              "Availability: each member's own default schedule applies. A time is offered only when every member is free."
+            )}
+          </p>
 
           <.limits_section booking_limits={@booking_limits} myself={@myself} />
 

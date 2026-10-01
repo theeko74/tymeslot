@@ -62,6 +62,23 @@ defmodule TymeslotWeb.Live.Scheduling.PreviewMode do
   end
 
   @doc """
+  Builds the path to an owner preview of the team page at `slug`, for its
+  owner `owner_user_id`. Same contract as `owner_path/3`: the team page's
+  organiser is its owner, so the owner's token makes a booking there a
+  simulation too, and the display claim lets the dashboard frame the page.
+  """
+  @spec team_path(String.t(), integer(), keyword()) :: String.t()
+  def team_path(slug, owner_user_id, opts \\ [])
+      when is_binary(slug) and is_integer(owner_user_id) do
+    query =
+      %{"preview" => "true", "preview_token" => PreviewToken.sign(owner_user_id)}
+      |> put_theme(Keyword.get(opts, :theme))
+      |> URI.encode_query()
+
+    "/team/#{slug}?#{query}"
+  end
+
+  @doc """
   Absolute-URL form of `owner_path/3`, for the onboarding preview iframe.
   """
   @spec owner_url(String.t(), integer(), keyword()) :: String.t()

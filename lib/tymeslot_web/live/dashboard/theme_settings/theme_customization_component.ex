@@ -22,6 +22,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomizationComponent do
   alias Phoenix.LiveView.Socket
   alias Tymeslot.Infrastructure.Logging.LogFormat
   alias Tymeslot.Security.RateLimiter
+  alias Tymeslot.Teams
   alias Tymeslot.ThemeCustomizations
   alias TymeslotWeb.Dashboard.ThemeSettings.BackgroundUploads
   alias TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomization.Components
@@ -96,19 +97,23 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomizationComponent do
 
   def update(assigns, socket) do
     theme_id = assigns[:theme_id] || "1"
+    team = assigns[:team]
+    owner = (team && Teams.customization_owner(team)) || assigns.profile.id
 
     # Initialize customization data from the domain
     %{
       customization: customization,
       original: _original_state,
       presets: presets
-    } = ThemeCustomizations.initialize_customization(assigns.profile.id, theme_id)
+    } = ThemeCustomizations.initialize_customization(owner, theme_id)
 
     # Narrow assigns surface: expose a small, consistent contract
     {:ok,
      socket
      |> assign(:id, assigns.id)
      |> assign(:profile, assigns.profile)
+     |> assign(:team, team)
+     |> assign(:owner, owner)
      |> assign(:parent_component, assigns[:parent_component])
      |> assign(:theme_id, theme_id)
      |> assign(:customization, customization)
@@ -125,8 +130,12 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomizationComponent do
     ~H"""
     <div class="space-y-8" phx-hook="AutoUpload" id="theme-customization-uploads">
       <.section_header level={3} title={dgettext("dashboard_appearance", "Theme Customization")} />
+      <p :if={@team} id="team-theme-customization-target" class="text-tymeslot-600 font-medium">
+        {dgettext("dashboard_teams", "Customizing the page of the team %{team}.", team: @team.name)}
+      </p>
       <Components.toolbar
         profile={@profile}
+        team={@team}
         theme_id={@theme_id}
         parent_component={@parent_component}
       />
@@ -155,7 +164,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomizationComponent do
   def handle_event("theme:select_color_scheme", %{"scheme" => scheme_id}, socket) do
     with_rate_limit(socket, "color_scheme", fn ->
       case ThemeCustomizations.apply_color_scheme_change(
-             socket.assigns.profile.id,
+             socket.assigns.owner,
              socket.assigns.theme_id,
              socket.assigns.customization,
              scheme_id
@@ -179,7 +188,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomizationComponent do
     if is_nil(socket.assigns.customization.custom_palette_seed) do
       with_rate_limit(socket, "color_scheme", fn ->
         case ThemeCustomizations.apply_color_scheme_change(
-               socket.assigns.profile.id,
+               socket.assigns.owner,
                socket.assigns.theme_id,
                socket.assigns.customization,
                "custom"
@@ -223,7 +232,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomizationComponent do
   def handle_event("theme:set_palette_seed", %{"value" => hex}, socket) do
     with_rate_limit(socket, "palette_seed", fn ->
       case ThemeCustomizations.apply_custom_palette_change(
-             socket.assigns.profile.id,
+             socket.assigns.owner,
              socket.assigns.theme_id,
              socket.assigns.customization,
              hex
@@ -242,7 +251,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomizationComponent do
   def handle_event("theme:set_custom_background", %{"value" => hex}, socket) do
     with_rate_limit(socket, "background", fn ->
       case ThemeCustomizations.apply_background_change(
-             socket.assigns.profile.id,
+             socket.assigns.owner,
              socket.assigns.theme_id,
              socket.assigns.customization,
              "color",
@@ -269,7 +278,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomizationComponent do
 
     with_rate_limit(socket, "background", fn ->
       case ThemeCustomizations.apply_background_change(
-             socket.assigns.profile.id,
+             socket.assigns.owner,
              socket.assigns.theme_id,
              socket.assigns.customization,
              type,

@@ -13,22 +13,44 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Card do
 
   @doc """
   Renders a meeting type card with status toggle and action buttons.
+
+  The `:manage` variant (the default) is the meeting settings card: a drag
+  handle, edit and delete buttons, and a switch activating the type. The
+  `:offer` variant is the same card on a team's page: no handle nor buttons,
+  and a switch, set by `offered`, that offers the type on the team or stops
+  offering it (`toggle_team_type`).
   """
   attr :type, :map, required: true
   attr :myself, :any, required: true
   attr :currency, :string, default: "eur"
   attr :icon_size, :string, default: "mini", values: ["compact", "medium", "large", "mini"]
+  attr :variant, :atom, default: :manage, values: [:manage, :offer]
+  attr :offered, :boolean, default: false
+  attr :sortable, :boolean, default: true, doc: "Shows the drag handle in the `:offer` variant"
 
   @spec meeting_type_card(map()) :: Phoenix.LiveView.Rendered.t()
   def meeting_type_card(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :switched_on,
+        if(assigns.variant == :offer, do: assigns.offered, else: assigns.type.is_active)
+      )
+
     ~H"""
-    <div class={[
-      "card-glass py-3 px-4",
-      if(@type.is_active, do: "card-glass-available", else: "card-glass-unavailable")
-    ]}>
+    <div
+      id={if @variant == :offer, do: "offer-type-#{@type.id}"}
+      class={[
+        "card-glass py-3 px-4",
+        if(@switched_on, do: "card-glass-available", else: "card-glass-unavailable")
+      ]}
+    >
       <div class="flex items-center gap-3">
         <%!-- Drag Handle --%>
-        <div class="cursor-grab active:cursor-grabbing text-tymeslot-400 shrink-0">
+        <div
+          :if={@variant == :manage or @sortable}
+          class="cursor-grab active:cursor-grabbing text-tymeslot-400 shrink-0"
+        >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -117,7 +139,32 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Card do
         </div>
 
         <%!-- Actions --%>
-        <div class="flex items-center gap-1.5 shrink-0">
+        <div :if={@variant == :offer} class="flex items-center gap-2 shrink-0">
+          <span
+            :if={!@type.is_active}
+            class="text-token-xs text-tymeslot-500"
+            title={
+              dgettext(
+                "dashboard_teams",
+                "Switched off in the meeting settings: not shown on any team page."
+              )
+            }
+          >
+            {dgettext("dashboard_teams", "Inactive")}
+          </span>
+          <StatusSwitch.status_switch
+            id={"team-type-toggle-#{@type.id}"}
+            checked={@offered}
+            size={:small}
+            on_change="toggle_team_type"
+            target={@myself}
+            phx_value_id={to_string(@type.id)}
+            aria_label={dgettext("dashboard_teams", "Offer %{name} on this team", name: @type.name)}
+            class="shrink-0"
+          />
+        </div>
+
+        <div :if={@variant == :manage} class="flex items-center gap-1.5 shrink-0">
           <button
             phx-click="edit_type"
             phx-value-id={@type.id}

@@ -11,6 +11,7 @@ defmodule Tymeslot.ThemeCustomizations.ThemeCustomizationSchema do
   @type t :: %__MODULE__{
           id: integer() | nil,
           profile_id: integer() | nil,
+          team_id: integer() | nil,
           theme_id: String.t() | nil,
           color_scheme: String.t(),
           custom_palette_seed: String.t() | nil,
@@ -40,6 +41,9 @@ defmodule Tymeslot.ThemeCustomizations.ThemeCustomizationSchema do
     field(:video_processing, :string)
 
     belongs_to(:profile, ProfileSchema, foreign_key: :profile_id)
+    # Set on a team page's customisation, which also carries the owner's
+    # `profile_id`; see the `add_team_booking_theme` migration.
+    field(:team_id, :integer)
 
     timestamps(type: :utc_datetime)
   end
@@ -50,6 +54,7 @@ defmodule Tymeslot.ThemeCustomizations.ThemeCustomizationSchema do
     theme_customization
     |> cast(attrs, [
       :profile_id,
+      :team_id,
       :theme_id,
       :color_scheme,
       :custom_palette_seed,
@@ -67,7 +72,13 @@ defmodule Tymeslot.ThemeCustomizations.ThemeCustomizationSchema do
     |> validate_background_value()
     |> validate_custom_palette_seed()
     |> foreign_key_constraint(:profile_id)
-    |> unique_constraint([:profile_id, :theme_id])
+    |> foreign_key_constraint(:team_id)
+    |> unique_constraint([:profile_id, :theme_id],
+      name: :theme_customizations_profile_id_theme_id_index
+    )
+    |> unique_constraint([:team_id, :theme_id],
+      name: :theme_customizations_team_id_theme_id_index
+    )
   end
 
   @doc """

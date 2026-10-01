@@ -253,24 +253,24 @@ defmodule Tymeslot.Bookings.Create do
 
   defp validate_meeting_type_active(%{meeting_type: nil}), do: {:error, :meeting_type_not_found}
 
-  # A team's settings meeting type is booked only through its team page, and a
-  # team page books only its own settings type, owned by its owner. `team_id`
-  # and `meeting_type_id` both arrive with the submit, so each is checked
-  # against the other rather than trusted: without it a forged submit could
-  # book a team's type for its owner alone, or pair a personal type with a
-  # team and drag its members into it.
-  defp validate_team_pairing(%{team_id: nil, meeting_type: %{team_id: team_id}})
-       when is_integer(team_id),
-       do: {:error, :meeting_type_not_found}
+  # A team meeting type is booked only through a team page that offers it, and
+  # a team page books only the team meeting types it offers, owned by its
+  # owner. `team_id` and `meeting_type_id` both arrive with the submit, so each
+  # is checked against the other rather than trusted: without it a forged
+  # submit could book a team type for its owner alone, or pair a personal type
+  # with a team and drag its members into it.
+  defp validate_team_pairing(%{team_id: nil, meeting_type: %{is_team_type: true}}),
+    do: {:error, :meeting_type_not_found}
 
   defp validate_team_pairing(%{team_id: nil}), do: :ok
 
   defp validate_team_pairing(%{
-         team: %{id: team_id, owner_user_id: owner_id},
-         meeting_type: %{team_id: team_id},
+         team: %{owner_user_id: owner_id} = team,
+         meeting_type: %{is_team_type: true} = meeting_type,
          organizer_user_id: owner_id
-       }),
-       do: :ok
+       }) do
+    if Teams.offers?(team, meeting_type), do: :ok, else: {:error, :meeting_type_not_found}
+  end
 
   defp validate_team_pairing(_booking_data), do: {:error, :meeting_type_not_found}
 

@@ -7,14 +7,24 @@ defmodule Tymeslot.ThemeCustomizations.ThemeCustomizationQueries do
   alias Ecto.Changeset
   alias Tymeslot.Profiles.ProfileSchema
   alias Tymeslot.Repo
+  alias Tymeslot.ThemeCustomizations.Owner
   alias Tymeslot.ThemeCustomizations.ThemeCustomizationSchema
 
   @doc """
-  Gets a theme customization by profile ID and theme ID.
+  Gets a theme customization by owner and theme ID. The owner is a profile ID,
+  or a team (`Tymeslot.ThemeCustomizations.Owner`); a profile's own lookup
+  never returns one of its teams' rows.
   """
-  @spec get_by_profile_and_theme(integer(), String.t()) :: ThemeCustomizationSchema.t() | nil
+  @spec get_by_profile_and_theme(Owner.t(), String.t()) :: ThemeCustomizationSchema.t() | nil
+  def get_by_profile_and_theme({:team, team_id, _profile_id}, theme_id) do
+    Repo.get_by(ThemeCustomizationSchema, team_id: team_id, theme_id: theme_id)
+  end
+
   def get_by_profile_and_theme(profile_id, theme_id) do
-    Repo.get_by(ThemeCustomizationSchema, profile_id: profile_id, theme_id: theme_id)
+    ThemeCustomizationSchema
+    |> where([tc], tc.profile_id == ^profile_id and tc.theme_id == ^theme_id)
+    |> where([tc], is_nil(tc.team_id))
+    |> Repo.one()
   end
 
   @doc """

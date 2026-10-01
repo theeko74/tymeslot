@@ -36,20 +36,19 @@ defmodule TymeslotWeb.Dashboard.TeamsTest do
       "team" => %{
         "name" => "Growth Team",
         "slug" => "",
-        "description" => "",
-        "duration_minutes" => "45"
+        "description" => "Grow with us"
       }
     })
     |> render_submit()
 
-    assert [%{name: "Growth Team", slug: "growth-team", duration_minutes: 45}] =
+    assert [%{name: "Growth Team", slug: "growth-team", description: "Grow with us"}] =
              Teams.list_teams_for_user(user.id)
 
     assert render(view) =~ "/team/growth-team"
   end
 
   test "adds a member by email and reports an unknown address", %{conn: conn, user: user} do
-    {:ok, team} = Teams.create_team(user.id, %{name: "Support", duration_minutes: 30})
+    {:ok, team} = Teams.create_team(user.id, %{name: "Support"})
     colleague = insert(:user, email: "colleague@example.com")
     insert(:profile, user: colleague)
 
@@ -69,7 +68,7 @@ defmodule TymeslotWeb.Dashboard.TeamsTest do
   test "a member sees the team and can leave it", %{conn: conn, user: user} do
     owner = insert(:user)
     insert(:profile, user: owner)
-    {:ok, team} = Teams.create_team(owner.id, %{name: "Owned Elsewhere", duration_minutes: 30})
+    {:ok, team} = Teams.create_team(owner.id, %{name: "Owned Elsewhere"})
     {:ok, _team} = Teams.add_member_by_email(team.id, owner.id, user.email)
 
     {:ok, view, html} = live(conn, ~p"/dashboard/teams")
@@ -85,14 +84,14 @@ defmodule TymeslotWeb.Dashboard.TeamsTest do
 
   test "does not list other users' teams", %{conn: conn} do
     other = insert(:user)
-    {:ok, _team} = Teams.create_team(other.id, %{name: "Private Crew", duration_minutes: 30})
+    {:ok, _team} = Teams.create_team(other.id, %{name: "Private Crew"})
 
     {:ok, _view, html} = live(conn, ~p"/dashboard/teams")
     refute html =~ "Private Crew"
   end
 
   test "the owner deletes a team after confirming", %{conn: conn, user: user} do
-    {:ok, team} = Teams.create_team(user.id, %{name: "Short Lived", duration_minutes: 30})
+    {:ok, team} = Teams.create_team(user.id, %{name: "Short Lived"})
 
     {:ok, view, _html} = live(conn, ~p"/dashboard/teams")
     view |> element("#team-card-#{team.id} button", "Manage") |> render_click()

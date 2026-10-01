@@ -124,13 +124,13 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.BackgroundUploads do
 
   defp process(socket, :image) do
     socket
-    |> ThemeUploadHelper.process_background_image_upload(socket.assigns.profile)
+    |> ThemeUploadHelper.process_background_image_upload(socket.assigns.owner)
     |> apply_result(socket)
   end
 
   defp process(socket, :video) do
     socket
-    |> ThemeUploadHelper.process_background_video_upload(socket.assigns.profile)
+    |> ThemeUploadHelper.process_background_video_upload(socket.assigns.owner)
     |> apply_result(socket)
   end
 
@@ -138,7 +138,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.BackgroundUploads do
     # Re-read the customisation so the new asset path is reflected immediately.
     %{customization: customization} =
       ThemeCustomizations.initialize_customization(
-        socket.assigns.profile.id,
+        socket.assigns.owner,
         socket.assigns.theme_id
       )
 

@@ -175,7 +175,9 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
               <.nav_link
                 patch={~p"/dashboard/theme"}
                 current={
-                  if @current_action == :theme_customization, do: :theme, else: @current_action
+                  if @current_action in [:theme_customization, :team_theme_customization],
+                    do: :theme,
+                    else: @current_action
                 }
                 action={:theme}
               >

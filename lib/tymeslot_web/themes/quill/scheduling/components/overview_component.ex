@@ -10,6 +10,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.OverviewComponent do
   alias Tymeslot.Meetings.Approval
   alias Tymeslot.MeetingTypes
   alias Tymeslot.Profiles
+  alias TymeslotWeb.Live.Scheduling.TeamHelpers
   alias TymeslotWeb.Themes.Shared.BookingText
   alias TymeslotWeb.Themes.Shared.Components.ApprovalNotice
   alias TymeslotWeb.Themes.Shared.LocalizationHelpers
@@ -99,7 +100,11 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.OverviewComponent do
                     <div class="overview-avatar-wrapper relative inline-block">
                       <img
                         src={Demo.avatar_url(@organizer_profile)}
-                        alt={Demo.avatar_alt_text(@organizer_profile)}
+                        alt={
+                          if assigns[:team],
+                            do: @team.name,
+                            else: Demo.avatar_alt_text(@organizer_profile)
+                        }
                         class="overview-avatar rounded-full object-cover shadow-2xl border-4 border-white/50 transition-all duration-300 hover:scale-105 cursor-pointer"
                       />
                       <div class="overview-success-badge absolute rounded-full flex items-center justify-center shadow-lg">
@@ -109,22 +114,31 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.OverviewComponent do
                   </div>
 
                   <div>
-                    <h1 class="section-header overview-title">
-                      {BookingText.heading(
-                        @organizer_profile,
-                        :quill,
-                        Profiles.display_name(@organizer_profile)
-                      )}
-                    </h1>
-                    <%!-- Greeting and instruction are separate settings, often
-                         separate thoughts; each starts on its own line, as the
-                         Rhythm theme shows them. --%>
-                    <p class="overview-description text-glass-primary">
-                      <%= if greeting = BookingText.greeting(@organizer_profile, Profiles.display_name(@organizer_profile)) do %>
-                        {greeting}<br />
-                      <% end %>
-                      {BookingText.instruction(@organizer_profile)}
-                    </p>
+                    <%= if assigns[:team] do %>
+                      <%!-- A team page introduces the team, never its owner. --%>
+                      <h1 class="section-header overview-title">{TeamHelpers.heading(assigns)}</h1>
+                      <p class="overview-description text-glass-primary">
+                        {TeamHelpers.greeting(assigns)}<br />
+                        {TeamHelpers.instruction(assigns)}
+                      </p>
+                    <% else %>
+                      <h1 class="section-header overview-title">
+                        {BookingText.heading(
+                          @organizer_profile,
+                          :quill,
+                          Profiles.display_name(@organizer_profile)
+                        )}
+                      </h1>
+                      <%!-- Greeting and instruction are separate settings, often
+                           separate thoughts; each starts on its own line, as the
+                           Rhythm theme shows them. --%>
+                      <p class="overview-description text-glass-primary">
+                        <%= if greeting = BookingText.greeting(@organizer_profile, Profiles.display_name(@organizer_profile)) do %>
+                          {greeting}<br />
+                        <% end %>
+                        {BookingText.instruction(@organizer_profile)}
+                      </p>
+                    <% end %>
 
                     <div class="overview-duration-list">
                       <%= if @meeting_types == [] do %>

@@ -5,6 +5,7 @@ defmodule TymeslotWeb.Themes.Shared.Customization.Helpers do
   use Phoenix.Component
 
   alias Tymeslot.Demo
+  alias Tymeslot.Teams
   alias Tymeslot.ThemeCustomizations
   alias Tymeslot.ThemeCustomizations.Capability
   alias Tymeslot.ThemeCustomizations.Defaults
@@ -18,7 +19,7 @@ defmodule TymeslotWeb.Themes.Shared.Customization.Helpers do
   @spec assign_theme_customization(Phoenix.LiveView.Socket.t(), map(), String.t()) ::
           Phoenix.LiveView.Socket.t()
   def assign_theme_customization(socket, profile, theme_id) do
-    customization = Demo.get_theme_customization(profile.id, theme_id)
+    customization = find_customization(socket.assigns[:team], profile, theme_id)
 
     # Use a fallback customization when none exists so previews always have sensible defaults
     effective_customization =
@@ -36,6 +37,18 @@ defmodule TymeslotWeb.Themes.Shared.Customization.Helpers do
     |> assign(:custom_css, custom_css)
     |> assign(:customization_options, Capability.get_customization_options(theme_id))
   end
+
+  # A team page wears the team's own customisation of the theme, else the
+  # owner's, so a team that never customised still looks like its owner's page.
+  defp find_customization(%{} = team, profile, theme_id) do
+    case Teams.customization_owner(team) do
+      nil -> nil
+      owner -> ThemeCustomizations.get_by_profile_and_theme(owner, theme_id)
+    end || Demo.get_theme_customization(profile.id, theme_id)
+  end
+
+  defp find_customization(_team, profile, theme_id),
+    do: Demo.get_theme_customization(profile.id, theme_id)
 
   @doc """
   Gets the background style attribute for a customization.

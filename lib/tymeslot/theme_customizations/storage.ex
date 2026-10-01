@@ -5,6 +5,7 @@ defmodule Tymeslot.ThemeCustomizations.Storage do
   """
 
   require Logger
+  alias Tymeslot.ThemeCustomizations.Owner
   alias Tymeslot.Utils.MediaValidator
   alias TymeslotWeb.Helpers.UploadHandler
 
@@ -31,9 +32,25 @@ defmodule Tymeslot.ThemeCustomizations.Storage do
   Returns the directory where theme assets are stored for a profile/theme/type.
   Type is one of "images" | "videos".
   """
-  @spec get_theme_upload_directory(integer(), String.t(), String.t()) :: String.t()
-  def get_theme_upload_directory(profile_id, theme_id, type) do
-    Path.join([get_upload_base_directory(), "themes", to_string(profile_id), theme_id, type])
+  @spec get_theme_upload_directory(Owner.t(), String.t(), String.t()) :: String.t()
+  def get_theme_upload_directory(owner, theme_id, type) do
+    Path.join([get_upload_base_directory() | relative_segments(owner, theme_id, type)])
+  end
+
+  # `themes/<profile_id>/<theme>/<type>` for a profile's own assets,
+  # `themes/teams/<team_id>/<theme>/<type>` for a team page's.
+  defp relative_segments(owner, theme_id, type),
+    do: ["themes" | Owner.storage_segments(owner)] ++ [theme_id, type]
+
+  @doc "Removes a team page's whole theme upload directory."
+  @spec delete_team_directory(pos_integer()) :: :ok | {:error, File.posix(), Path.t()}
+  def delete_team_directory(team_id) when is_integer(team_id) do
+    case File.rm_rf(
+           Path.join([get_upload_base_directory(), "themes", "teams", Integer.to_string(team_id)])
+         ) do
+      {:ok, _removed} -> :ok
+      {:error, reason, failed_path} -> {:error, reason, failed_path}
+    end
   end
 
   @doc """
@@ -77,11 +94,11 @@ defmodule Tymeslot.ThemeCustomizations.Storage do
   @doc """
   Stores a background image file and returns {:ok, relative_path}.
   """
-  @spec store_background_image(integer(), String.t(), file_upload()) ::
+  @spec store_background_image(Owner.t(), String.t(), file_upload()) ::
           {:ok, String.t()} | {:error, term()}
-  def store_background_image(profile_id, theme_id, %{path: temp_path, filename: filename}) do
+  def store_background_image(owner, theme_id, %{path: temp_path, filename: filename}) do
     if MediaValidator.valid_image_file?(temp_path) do
-      dest_dir = get_theme_upload_directory(profile_id, theme_id, "images")
+      dest_dir = get_theme_upload_directory(owner, theme_id, "images")
 
       with :ok <- ensure_directory_exists(dest_dir),
            {:ok, sanitized_filename} <-
@@ -89,10 +106,13 @@ defmodule Tymeslot.ThemeCustomizations.Storage do
                temp_path,
                dest_dir,
                filename,
-               %{operation: :store_background_image, profile_id: profile_id, theme_id: theme_id}
+               %{
+                 operation: :store_background_image,
+                 profile_id: Owner.profile_id(owner),
+                 theme_id: theme_id
+               }
              ) do
-        {:ok,
-         Path.join(["themes", to_string(profile_id), theme_id, "images", sanitized_filename])}
+        {:ok, Path.join(relative_segments(owner, theme_id, "images") ++ [sanitized_filename])}
       end
     else
       {:error, :invalid_image_format}
@@ -102,11 +122,11 @@ defmodule Tymeslot.ThemeCustomizations.Storage do
   @doc """
   Stores a background video file and returns {:ok, relative_path}.
   """
-  @spec store_background_video(integer(), String.t(), file_upload()) ::
+  @spec store_background_video(Owner.t(), String.t(), file_upload()) ::
           {:ok, String.t()} | {:error, term()}
-  def store_background_video(profile_id, theme_id, %{path: temp_path, filename: filename}) do
+  def store_background_video(owner, theme_id, %{path: temp_path, filename: filename}) do
     if MediaValidator.valid_video_file?(temp_path) do
-      dest_dir = get_theme_upload_directory(profile_id, theme_id, "videos")
+      dest_dir = get_theme_upload_directory(owner, theme_id, "videos")
 
       with :ok <- ensure_directory_exists(dest_dir),
            {:ok, sanitized_filename} <-
@@ -114,10 +134,13 @@ defmodule Tymeslot.ThemeCustomizations.Storage do
                temp_path,
                dest_dir,
                filename,
-               %{operation: :store_background_video, profile_id: profile_id, theme_id: theme_id}
+               %{
+                 operation: :store_background_video,
+                 profile_id: Owner.profile_id(owner),
+                 theme_id: theme_id
+               }
              ) do
-        {:ok,
-         Path.join(["themes", to_string(profile_id), theme_id, "videos", sanitized_filename])}
+        {:ok, Path.join(relative_segments(owner, theme_id, "videos") ++ [sanitized_filename])}
       end
     else
       {:error, :invalid_video_format}

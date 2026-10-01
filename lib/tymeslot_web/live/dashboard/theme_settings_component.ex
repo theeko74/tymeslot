@@ -8,7 +8,9 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
 
   alias Tymeslot.Profiles
   alias Tymeslot.Scheduling.LinkAccessPolicy
+  alias Tymeslot.Teams
   alias TymeslotWeb.Dashboard.ThemeSettings.BookingTextForm
+  alias TymeslotWeb.Dashboard.ThemeSettings.TeamLogoComponent
   alias TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomizationComponent
   alias TymeslotWeb.Dashboard.ThemeSettings.ThemePreview
   alias TymeslotWeb.Live.Scheduling.PreviewMode
@@ -21,9 +23,24 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
   end
 
   @impl Phoenix.LiveComponent
+  # A team's logo or wording, changed by one of its forms below.
+  def update(%{team_updated: team}, socket) do
+    {:ok, assign(socket, :owned_teams, replace_team(socket.assigns.owned_teams, team))}
+  end
+
   def update(assigns, socket) do
+    socket =
+      socket
+      |> assign(assigns)
+      |> assign(:themes, ThemeInfo.theme_options())
+      # Only a team's owner styles its page, so only owned teams are listed.
+      |> assign_new(:owned_teams, fn -> Teams.list_owned_teams(assigns.current_user.id) end)
+      |> assign_new(:customization_timestamp, fn -> System.system_time() end)
+
+    customization_team = customization_team(socket.assigns)
+
     customization_theme_id =
-      if assigns.live_action == :theme_customization do
+      if assigns.live_action in [:theme_customization, :team_theme_customization] do
         theme_id = assigns.params["theme_id"]
         if ThemeInfo.valid_theme_id?(theme_id), do: theme_id, else: nil
       else
@@ -31,19 +48,34 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
       end
 
     show_customization =
-      (assigns.live_action == :theme_customization && not is_nil(customization_theme_id)) ||
-        assigns[:show_customization] || false
+      case assigns.live_action do
+        :theme_customization ->
+          not is_nil(customization_theme_id)
 
-    socket =
-      socket
-      |> assign(assigns)
-      |> assign(:themes, ThemeInfo.theme_options())
-      |> assign(:show_customization, show_customization)
-      |> assign(:customization_theme_id, customization_theme_id)
-      |> assign_new(:customization_timestamp, fn -> System.system_time() end)
+        # An unknown team, or one this user does not own, shows the theme list.
+        :team_theme_customization ->
+          not is_nil(customization_theme_id) and customization_team != nil
 
-    {:ok, socket}
+        _other ->
+          assigns[:show_customization] || false
+      end
+
+    {:ok,
+     socket
+     |> assign(:show_customization, show_customization)
+     |> assign(:customization_team, customization_team)
+     |> assign(:customization_theme_id, customization_theme_id)}
   end
+
+  defp customization_team(%{live_action: :team_theme_customization} = assigns) do
+    team_id = assigns.params["team_id"]
+    Enum.find(assigns.owned_teams, &(to_string(&1.id) == team_id))
+  end
+
+  defp customization_team(_assigns), do: nil
+
+  defp replace_team(teams, updated),
+    do: Enum.map(teams, fn team -> if team.id == updated.id, do: updated, else: team end)
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -53,8 +85,11 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
         <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
           <.live_component
             module={ThemeCustomizationComponent}
-            id={"theme-customization-#{@customization_theme_id}-#{@customization_timestamp}"}
+            id={
+              "theme-customization-#{if @customization_team, do: "team-#{@customization_team.id}-"}#{@customization_theme_id}-#{@customization_timestamp}"
+            }
             profile={@profile}
+            team={@customization_team}
             theme_id={@customization_theme_id}
             parent_component={@myself}
           />
@@ -220,6 +255,15 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
           profile={@profile}
         />
 
+        <.team_themes
+          :if={@owned_teams != []}
+          teams={@owned_teams}
+          themes={@themes}
+          myself={@myself}
+          profile={@profile}
+          current_user={@current_user}
+        />
+
         <div class="mt-16 bg-tymeslot-50 border-2 border-dashed border-tymeslot-200 rounded-token-3xl p-8 relative overflow-hidden group">
           <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:rotate-12 transition-transform duration-700">
             <svg class="w-32 h-32 text-tymeslot-900" fill="currentColor" viewBox="0 0 24 24">
@@ -250,7 +294,159 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
     """
   end
 
+  attr :teams, :list, required: true
+  attr :themes, :list, required: true
+  attr :myself, :any, required: true
+  attr :profile, :map, required: true
+  attr :current_user, :map, required: true
+
+  # One block per team the user owns: its logo, which theme its page wears
+  # with a way into that theme's customisation for this team alone, and the
+  # wording that opens its page.
+  defp team_themes(assigns) do
+    ~H"""
+    <section id="team-themes" class="mt-16 space-y-6">
+      <.section_header
+        icon="hero-user-group"
+        title={dgettext("dashboard_teams", "Team pages")}
+      />
+      <p class="text-tymeslot-500 font-medium max-w-2xl">
+        {dgettext(
+          "dashboard_teams",
+          "Each team page can wear its own style. Until you choose one, it wears yours."
+        )}
+      </p>
+
+      <div
+        :for={team <- @teams}
+        id={"team-theme-#{team.id}"}
+        class="card-glass space-y-5"
+      >
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h3 class="text-token-xl font-black text-tymeslot-900 tracking-tight">{team.name}</h3>
+          <a
+            href={"/team/#{team.slug}"}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-token-sm font-bold text-turquoise-600 hover:text-turquoise-700"
+          >
+            /team/{team.slug}
+          </a>
+        </div>
+
+        <.live_component
+          module={TeamLogoComponent}
+          id={"team-logo-#{team.id}"}
+          team={team}
+          current_user={@current_user}
+          parent={@myself}
+        />
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div
+            :for={{theme_name, theme_id} <- @themes}
+            class={[
+              "rounded-token-2xl border-2 p-4 space-y-3 transition-all",
+              if(team.booking_theme == theme_id,
+                do: "border-turquoise-400 bg-turquoise-50/50",
+                else: "border-tymeslot-100"
+              )
+            ]}
+          >
+            <div class="h-28 overflow-hidden rounded-token-lg">
+              <ThemePreview.render theme_id={theme_id} />
+            </div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-black text-tymeslot-900">{theme_name}</span>
+              <span
+                :if={team.booking_theme == theme_id}
+                class="text-token-xs font-black uppercase tracking-wider text-turquoise-600"
+              >
+                {dgettext("dashboard_appearance", "Current Style")}
+              </span>
+            </div>
+            <div class="flex gap-2">
+              <button
+                :if={team.booking_theme != theme_id}
+                type="button"
+                id={"select-team-theme-#{team.id}-#{theme_id}"}
+                class="btn btn-secondary flex-1 py-2 px-3 text-token-sm"
+                phx-click="select_team_theme"
+                phx-value-team-id={team.id}
+                phx-value-theme={theme_id}
+                phx-target={@myself}
+              >
+                {dgettext("dashboard_teams", "Use this style")}
+              </button>
+              <button
+                type="button"
+                id={"customize-team-theme-#{team.id}-#{theme_id}"}
+                class="btn btn-primary flex-1 py-2 px-3 text-token-sm"
+                phx-click="customize_team_theme"
+                phx-value-team-id={team.id}
+                phx-value-theme={theme_id}
+                phx-target={@myself}
+              >
+                {dgettext("dashboard_appearance", "Customize Style")}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button
+          :if={team.booking_theme}
+          type="button"
+          id={"reset-team-theme-#{team.id}"}
+          class="text-token-sm font-bold text-tymeslot-500 hover:text-tymeslot-700"
+          phx-click="select_team_theme"
+          phx-value-team-id={team.id}
+          phx-value-theme=""
+          phx-target={@myself}
+        >
+          {dgettext("dashboard_teams", "Wear the same style as my page")}
+        </button>
+
+        <.live_component
+          module={BookingTextForm}
+          id={"team-booking-text-#{team.id}"}
+          profile={@profile}
+          team={team}
+          parent={@myself}
+        />
+      </div>
+    </section>
+    """
+  end
+
   @impl Phoenix.LiveComponent
+  def handle_event("select_team_theme", %{"team-id" => team_id, "theme" => theme}, socket) do
+    theme_id = if theme == "", do: nil, else: theme
+
+    with {id, ""} <- Integer.parse(team_id),
+         {:ok, updated} <-
+           Teams.update_booking_theme(id, socket.assigns.current_user.id, theme_id) do
+      {:noreply,
+       socket
+       |> assign(:owned_teams, replace_team(socket.assigns.owned_teams, updated))
+       |> Flash.put_flash(
+         :info,
+         dgettext("dashboard_teams", "Style of the team %{team} updated", team: updated.name)
+       )}
+    else
+      _error ->
+        {:noreply,
+         Flash.put_flash(
+           socket,
+           :error,
+           dgettext("dashboard_appearance", "Failed to update theme")
+         )}
+    end
+  end
+
+  def handle_event("customize_team_theme", %{"team-id" => team_id, "theme" => theme_id}, socket) do
+    {:noreply, push_patch(socket, to: ~p"/dashboard/theme/team/#{team_id}/customize/#{theme_id}")}
+  end
+
   def handle_event("show_customization", %{"theme" => theme_id}, socket) do
     {:noreply, push_patch(socket, to: ~p"/dashboard/theme/customize/#{theme_id}")}
   end

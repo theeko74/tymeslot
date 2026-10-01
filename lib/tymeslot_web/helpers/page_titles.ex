@@ -30,7 +30,11 @@ defmodule TymeslotWeb.Helpers.PageTitles do
     do: section_title(dgettext("dashboard_common", "Video Integration"))
 
   def dashboard_title(:automation), do: section_title(dgettext("dashboard_common", "Automation"))
-  def dashboard_title(:theme), do: section_title(dgettext("dashboard_common", "Theme Selection"))
+
+  def dashboard_title(action)
+      when action in [:theme, :theme_customization, :team_theme_customization],
+      do: section_title(dgettext("dashboard_common", "Theme Selection"))
+
   def dashboard_title(:meetings), do: section_title(dgettext("dashboard_common", "Meetings"))
   def dashboard_title(:embed), do: section_title(dgettext("dashboard_common", "Embed & Share"))
   def dashboard_title(:payments), do: section_title(dgettext("dashboard_common", "Payments"))

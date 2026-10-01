@@ -10,6 +10,7 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
   alias Tymeslot.MeetingPayments
   alias Tymeslot.MeetingTypes
   alias Tymeslot.Security.RateLimiter
+  alias Tymeslot.Teams
   alias TymeslotWeb.Dashboard.MeetingSettings.Helpers
   alias TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm.Submission
   alias TymeslotWeb.Dashboard.ServiceSettings.ComponentView
@@ -20,6 +21,9 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
     {:ok,
      socket
      |> assign(:meeting_types, [])
+     |> assign(:teams, [])
+     |> assign(:team_types, [])
+     |> assign(:adding_team_type, false)
      |> assign(:show_add_form, false)
      |> assign(:editing_type, nil)
      |> assign(:show_edit_overlay, false)
@@ -50,6 +54,10 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
     socket =
       socket
       |> assign(:meeting_types, data.meeting_types)
+      # The user's team meeting types, generic and offered by any of the teams
+      # they own, managed in their own section below the user's own types.
+      |> assign(:teams, Teams.list_owned_teams(user_id))
+      |> assign(:team_types, MeetingTypes.list_user_team_meeting_types(user_id))
       |> assign(:video_integrations, data.video_integrations)
       |> assign(:calendar_integrations, data.calendar_integrations)
       |> assign(:payment_currency, host_currency(data.meeting_types, user_id))
@@ -74,6 +82,20 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
     {:noreply,
      socket
      |> assign(:show_add_form, !socket.assigns.show_add_form)
+     |> assign(:adding_team_type, false)
+     |> assign(:editing_type, nil)
+     |> assign(:form_errors, %{})
+     |> assign(:selected_icon, "none")
+     |> assign(:form_data, %{})}
+  end
+
+  # Opens the add form for a team meeting type, which any of the user's teams
+  # can then offer.
+  def handle_event("add_team_type", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_add_form, true)
+     |> assign(:adding_team_type, true)
      |> assign(:editing_type, nil)
      |> assign(:form_errors, %{})
      |> assign(:selected_icon, "none")
@@ -81,7 +103,7 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
   end
 
   def handle_event("edit_type", %{"id" => id}, socket) do
-    type = Enum.find(socket.assigns.meeting_types, &(&1.id == String.to_integer(id)))
+    type = Enum.find(all_meeting_types(socket), &(&1.id == String.to_integer(id)))
 
     if is_nil(type) do
       Flash.error(dgettext("dashboard_integrations", "Meeting type not found"))
@@ -274,6 +296,10 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
 
   # Private functions
 
+  # The user's own meeting types and their team meeting types: the editor
+  # opens either.
+  defp all_meeting_types(socket), do: socket.assigns.meeting_types ++ socket.assigns.team_types
+
   defp do_toggle_type(socket, type_id, user_id) do
     case MeetingTypes.get_meeting_type(type_id, user_id) do
       nil ->
@@ -357,7 +383,10 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
   # Re-fetches the (preloaded) type and refreshes both the open editor and the
   # underlying list entry so the UI reflects the saved state immediately.
   defp reload_editing_type(socket, type_id, user_id) do
-    updated = MeetingTypes.get_meeting_type(type_id, user_id)
+    updated =
+      type_id
+      |> MeetingTypes.get_meeting_type(user_id)
+      |> keep_offering_teams(socket.assigns.editing_type)
 
     meeting_types =
       Enum.map(socket.assigns.meeting_types, fn
@@ -369,6 +398,14 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
     |> assign(:meeting_types, meeting_types)
     |> assign(:editing_type, updated)
   end
+
+  # A team type's booking links are built from the teams offering it, which a
+  # by-id reload does not preload; edits never change them, so carry them over.
+  defp keep_offering_teams(%{is_team_type: true} = updated, %{id: id, teams: teams})
+       when updated.id == id and is_list(teams),
+       do: %{updated | teams: teams}
+
+  defp keep_offering_teams(updated, _previous), do: updated
 
   defp hide_slug_modal(socket) do
     socket
@@ -392,7 +429,8 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
            params,
            metadata,
            socket.assigns.editing_type,
-           socket.assigns.current_user
+           socket.assigns.current_user,
+           team_type: socket.assigns.adding_team_type
          ) do
       {:error, {:invalid_form, validation_errors}} ->
         {:noreply,

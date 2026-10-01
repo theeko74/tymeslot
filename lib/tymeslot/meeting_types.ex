@@ -326,6 +326,13 @@ defmodule Tymeslot.MeetingTypes do
   # module Tymeslot.MeetingTypes.Slugs; these delegations keep the context's
   # public API stable.
   defdelegate find_by_slug(user_id, slug), to: Slugs
+  defdelegate find_team_type_by_slug(team_meeting_types, slug), to: Slugs
+
+  @doc """
+  Lists every team meeting type `user_id` owns (active and inactive), in
+  display order, each with the teams offering it.
+  """
+  defdelegate list_user_team_meeting_types(user_id), to: MeetingTypeQueries
   defdelegate effective_slug(meeting_type), to: Slugs
   defdelegate generate_random_slug(user_id), to: Slugs
   defdelegate update_slug(meeting_type, slug), to: Slugs
@@ -348,13 +355,20 @@ defmodule Tymeslot.MeetingTypes do
 
   @doc """
   Creates a meeting type from form parameters with validation.
+
+  Pass `team_type: true` to create a team meeting type, offered on the pages
+  of the user's teams that list it rather than on the user's own page; see
+  `Tymeslot.Teams.create_team_meeting_type/3`.
   """
-  @spec create_meeting_type_from_form(integer(), map(), map()) ::
+  @spec create_meeting_type_from_form(integer(), map(), map(), keyword()) ::
           {:ok, Ecto.Schema.t()} | {:error, atom() | Ecto.Changeset.t()}
-  def create_meeting_type_from_form(user_id, form_params, ui_state) do
+  def create_meeting_type_from_form(user_id, form_params, ui_state, opts \\ []) do
     with {:ok, attrs} <- FormMapper.build_attrs(form_params, ui_state),
          :ok <- FormValidation.check(user_id, attrs) do
-      create_meeting_type(Map.put(attrs, :user_id, user_id), FormMapper.payment_opts(user_id))
+      attrs
+      |> Map.put(:user_id, user_id)
+      |> Map.put(:is_team_type, Keyword.get(opts, :team_type, false))
+      |> create_meeting_type(FormMapper.payment_opts(user_id))
     end
   end
 

@@ -68,9 +68,6 @@ defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
         OrganizerHelpers.handle_username_resolution(socket, params["username"])
       end
 
-    # A team page re-pins the settings type `assign_initial_state_fun` cleared.
-    socket = pin_team_meeting_type(socket)
-
     # Apply theme customization after organizer is resolved
     socket = maybe_assign_customization(socket)
 
@@ -209,7 +206,11 @@ defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
 
   # A reschedule stays on the meeting's own type, because that is the one whose
   # rules the submit will be validated against. Everything else picks by
-  # duration, which is what the visitor actually chose.
+  # duration, which is what the visitor actually chose. A team page picks among
+  # the team's types only (it is never a reschedule).
+  defp resolve_meeting_type(%{assigns: %{team: %{}}} = socket, duration_str),
+    do: TeamHelpers.find_meeting_type(socket.assigns, duration_str)
+
   defp resolve_meeting_type(socket, duration_str) do
     ThemeFlow.resolve_meeting_type_for_reschedule(
       socket.assigns[:reschedule_meeting_uid],
@@ -237,11 +238,7 @@ defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
     |> handle_confirmation_params(params)
   end
 
-  # A reschedule is pinned to the type it booked; `ReschedulePin` says why. A
-  # team page (never a reschedule) is pinned to its settings type.
-  defp pin_reschedule_meeting_type(%{assigns: %{team: %{}}} = socket),
-    do: pin_team_meeting_type(socket)
-
+  # A reschedule is pinned to the type it booked; `ReschedulePin` says why.
   defp pin_reschedule_meeting_type(socket) do
     case ReschedulePin.meeting_type(socket) do
       nil ->
@@ -354,6 +351,12 @@ defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
   #
   # Returns `{:unresolvable, socket}` — already flashed and redirected — when
   # the organiser has no type for this slug.
+  defp resolve_slug_meeting_type(%{assigns: %{team: %{}}} = socket, slug) when is_binary(slug),
+    do:
+      socket.assigns
+      |> TeamHelpers.find_meeting_type(slug)
+      |> assign_resolved_meeting_type(socket)
+
   defp resolve_slug_meeting_type(socket, slug) do
     if is_binary(socket.assigns[:username_context]) and is_binary(slug) do
       socket.assigns[:organizer_user_id]
@@ -377,6 +380,9 @@ defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
 
   # Carries the reschedule context across the redirect so a bad slug doesn't
   # silently turn a reschedule into a new, duplicate booking.
+  defp invalid_meeting_type_redirect_path(%{assigns: %{team: %{} = team}}),
+    do: TeamHelpers.path(team, :overview)
+
   defp invalid_meeting_type_redirect_path(socket) do
     base = ~p"/#{socket.assigns[:username_context]}"
 
@@ -513,8 +519,8 @@ defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
   end
 
   # Where a booking step reached with nothing selected sends the booker back to.
-  defp schedule_path(%{assigns: %{team: %{} = team}}, _params),
-    do: TeamHelpers.path(team, :schedule)
+  defp schedule_path(%{assigns: %{team: %{} = team}} = socket, params),
+    do: TeamHelpers.path(team, :schedule, socket.assigns[:selected_duration] || params["slug"])
 
   defp schedule_path(socket, params) do
     username = socket.assigns[:username_context]
@@ -639,7 +645,4 @@ defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
   defp raw_referrer_from_socket(socket) do
     socket.assigns[:scheduling_referrer]
   end
-
-  defp pin_team_meeting_type(socket),
-    do: TeamHelpers.pin_meeting_type(socket, &assign_meeting_type/2)
 end

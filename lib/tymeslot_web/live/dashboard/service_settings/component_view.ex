@@ -12,6 +12,7 @@ defmodule TymeslotWeb.Dashboard.ServiceSettings.ComponentView do
   use Gettext, backend: TymeslotWeb.Gettext
 
   alias Tymeslot.MeetingTypes
+  alias Tymeslot.Teams
   alias TymeslotWeb.Components.Dashboard.MeetingTypes.BookingLinkModal
   alias TymeslotWeb.Components.Dashboard.MeetingTypes.DeleteMeetingTypeModal
   alias TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm
@@ -42,11 +43,7 @@ defmodule TymeslotWeb.Dashboard.ServiceSettings.ComponentView do
               <.section_header
                 level={2}
                 icon="hero-squares-2x2"
-                title={
-                  if @editing_type,
-                    do: dgettext("dashboard_integrations", "Edit Meeting Type"),
-                    else: dgettext("dashboard_integrations", "Add Meeting Type")
-                }
+                title={form_title(assigns)}
               />
               <button
                 phx-click={if @editing_type, do: "close_edit_overlay", else: "toggle_add_form"}
@@ -66,26 +63,35 @@ defmodule TymeslotWeb.Dashboard.ServiceSettings.ComponentView do
             </div>
 
             <%!-- Direct booking link, always at hand while editing (needs a username) --%>
-            <div :if={@editing_type && booking_base_url(@profile)} class="space-y-2">
-              <div class="flex flex-wrap items-center gap-2">
+            <div
+              :if={@editing_type && booking_base_urls(@profile, @editing_type) != []}
+              class="space-y-2"
+            >
+              <div
+                :for={
+                  {base_url, index} <- Enum.with_index(booking_base_urls(@profile, @editing_type))
+                }
+                class="flex flex-wrap items-center gap-2"
+              >
                 <input
                   type="text"
                   readonly
                   aria-label={dgettext("dashboard_integrations", "Direct booking link")}
-                  value={"#{booking_base_url(@profile)}/#{MeetingTypes.effective_slug(@editing_type)}"}
+                  value={"#{base_url}/#{MeetingTypes.effective_slug(@editing_type)}"}
                   class="font-mono text-token-sm flex-1 min-w-[12rem] px-4 py-2.5 rounded-token-xl border-2 border-tymeslot-100 bg-tymeslot-50 text-tymeslot-600 cursor-default"
                 />
                 <button
                   type="button"
-                  id={"copy-booking-link-#{@editing_type.id}"}
+                  id={"copy-booking-link-#{@editing_type.id}-#{index}"}
                   phx-hook="CopyOnClick"
-                  data-copy-text={"#{booking_base_url(@profile)}/#{MeetingTypes.effective_slug(@editing_type)}"}
+                  data-copy-text={"#{base_url}/#{MeetingTypes.effective_slug(@editing_type)}"}
                   data-copy-feedback={dgettext("dashboard_integrations", "Booking link copied!")}
                   class="whitespace-nowrap px-5 py-2.5 rounded-token-xl bg-tymeslot-50 text-tymeslot-600 font-bold hover:bg-tymeslot-100 transition-all border-2 border-transparent hover:border-tymeslot-200"
                 >
                   {dgettext("dashboard_integrations", "Copy")}
                 </button>
                 <.action_button
+                  :if={index == 0}
                   type="button"
                   variant={:secondary}
                   phx-click="open_slug_modal"
@@ -122,6 +128,7 @@ defmodule TymeslotWeb.Dashboard.ServiceSettings.ComponentView do
               user_agent={@user_agent}
               form_errors={@form_errors}
               custom_questions_allowed={@custom_questions_allowed}
+              team_type={@adding_team_type or (@editing_type != nil and @editing_type.is_team_type)}
             />
           </div>
 
@@ -129,7 +136,7 @@ defmodule TymeslotWeb.Dashboard.ServiceSettings.ComponentView do
             show={@show_slug_modal}
             meeting_type={@slug_modal_type}
             slug_draft={@slug_draft}
-            base_url={booking_base_url(@profile) || ""}
+            base_url={List.first(booking_base_urls(@profile, @slug_modal_type)) || ""}
             myself={@myself}
           />
         </div>
@@ -146,6 +153,16 @@ defmodule TymeslotWeb.Dashboard.ServiceSettings.ComponentView do
               parent_myself={@myself}
             />
           </div>
+
+          <%!-- Team Meeting Types Section --%>
+          <MeetingTypesListComponent.team_meeting_types_section
+            teams={@teams}
+            team_types={@team_types}
+            show_add_form={@show_add_form}
+            editing_type={@editing_type}
+            currency={@payment_currency}
+            parent_myself={@myself}
+          />
 
           <%!-- Scheduling Settings --%>
           <div>
@@ -173,11 +190,26 @@ defmodule TymeslotWeb.Dashboard.ServiceSettings.ComponentView do
     """
   end
 
-  # The public base of a meeting type's booking link, e.g. "https://host/alice".
-  # Returns nil when the profile has no username yet (link UI is then hidden).
-  defp booking_base_url(%{username: username}) when is_binary(username) and username != "" do
-    Endpoint.url() <> "/" <> username
-  end
+  defp form_title(%{editing_type: %{}}),
+    do: dgettext("dashboard_integrations", "Edit Meeting Type")
 
-  defp booking_base_url(_profile), do: nil
+  defp form_title(%{adding_team_type: true}),
+    do: dgettext("dashboard_teams", "Add a team meeting type")
+
+  defp form_title(_assigns), do: dgettext("dashboard_integrations", "Add Meeting Type")
+
+  # The public bases of a meeting type's booking links: each page of a team
+  # offering a team type ("https://host/team/sales"), the user's page for a
+  # personal one ("https://host/alice"). Empty when there is no page to link to
+  # yet (link UI is then hidden).
+  defp booking_base_urls(_profile, %{is_team_type: true, teams: teams}) when is_list(teams),
+    do: Enum.map(teams, &(Endpoint.url() <> Teams.public_path(&1)))
+
+  defp booking_base_urls(_profile, %{is_team_type: true}), do: []
+
+  defp booking_base_urls(%{username: username}, _type)
+       when is_binary(username) and username != "",
+       do: [Endpoint.url() <> "/" <> username]
+
+  defp booking_base_urls(_profile, _type), do: []
 end

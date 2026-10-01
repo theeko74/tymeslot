@@ -12,7 +12,7 @@ defmodule Tymeslot.Profiles.ProfileSchema do
   alias Tymeslot.ThemeCustomizations.ThemeCustomizationSchema
   alias Tymeslot.Themes.Catalog
   alias Tymeslot.Timezones
-  alias Tymeslot.Validation.Constraints
+  alias Tymeslot.Validation.BookingText
 
   @type t :: %__MODULE__{
           id: integer() | nil,
@@ -118,61 +118,12 @@ defmodule Tymeslot.Profiles.ProfileSchema do
     |> unique_constraint(:freebusy_token)
   end
 
-  @booking_text_fields [:booking_heading, :booking_greeting, :booking_instruction]
-
   @doc """
-  Focused changeset for the booking page's introductory text.
-
-  The three strings are kept whether or not they are in use, so switching the
-  customisation off and back on restores the organiser's wording instead of
-  losing it. That is why `validate_required/2` applies only while
-  `booking_text_enabled` is true: a blank field is an error when the text is
-  live and unremarkable when it is not.
-
-  Casts with `empty_values: []` deliberately. Ecto's default treats `""` as
-  absent, which would silently drop the change when an organiser clears a field,
-  leaving the old wording on the page.
+  Focused changeset for the booking page's introductory text. The rules are
+  shared with a team page's; see `Tymeslot.Validation.BookingText`.
   """
   @spec booking_text_changeset(t(), map()) :: Ecto.Changeset.t()
-  def booking_text_changeset(profile, attrs) do
-    profile
-    |> cast(attrs, [:booking_text_enabled | @booking_text_fields], empty_values: [])
-    |> update_booking_text()
-    |> validate_length(:booking_heading, max: Constraints.booking_heading_max_length())
-    |> validate_length(:booking_greeting, max: Constraints.booking_welcome_line_max_length())
-    |> validate_length(:booking_instruction, max: Constraints.booking_welcome_line_max_length())
-    |> validate_booking_text_present()
-  end
-
-  defp update_booking_text(changeset) do
-    Enum.reduce(@booking_text_fields, changeset, fn field, acc ->
-      update_change(acc, field, &normalize_booking_text/1)
-    end)
-  end
-
-  defp normalize_booking_text(nil), do: nil
-
-  defp normalize_booking_text(value) when is_binary(value) do
-    # Postgres rejects null bytes even though they are valid UTF-8, so they are
-    # stripped at the boundary rather than left to blow up on insert.
-    trimmed =
-      value
-      |> String.replace("\x00", "")
-      |> String.trim()
-
-    blank_to_nil(trimmed)
-  end
-
-  defp blank_to_nil(""), do: nil
-  defp blank_to_nil(value), do: value
-
-  defp validate_booking_text_present(changeset) do
-    if fetch_field!(changeset, :booking_text_enabled) do
-      validate_required(changeset, @booking_text_fields)
-    else
-      changeset
-    end
-  end
+  def booking_text_changeset(profile, attrs), do: BookingText.changeset(profile, attrs)
 
   defp validate_username(changeset) do
     changeset

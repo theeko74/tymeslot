@@ -8,15 +8,20 @@ defmodule Tymeslot.Teams do
   whose organiser is the owner and whose other members are co-hosts
   (`Tymeslot.Meetings.CoHostSchema`).
 
-  ## The settings meeting type
+  ## Team meeting types
 
-  A team has one booking setting: a name, a description and a duration. It is
-  mirrored onto a `meeting_types` row owned by the team's owner and flagged
-  with `team_id`, so that the booking pipeline, which re-reads the meeting type
-  by id and takes its rules from it, needs no second code path. The row is
-  private, carries no availability schedule (each member is booked against
-  their own default schedule), and is left out of every personal listing of
-  the owner's meeting types. Deleting the team deletes it.
+  What a team page offers is team meeting types, configured like the owner's
+  own (duration, video, locations, questions, reminders...). They are
+  `meeting_types` rows flagged `is_team_type`, owned by the user who created
+  them, so that the booking pipeline, which re-reads the meeting type by id and
+  takes its rules from it, needs no second code path. They are generic: one is
+  created once and offered by any of its owner's teams (`team_meeting_types`).
+  They are named and slugged among their owner's team types, and left out of
+  every personal listing of the owner's meeting types.
+
+  Two settings a personal type has do not apply (`MeetingTypeSchema` enforces
+  both): a team type names no availability schedule, since each member is
+  booked against their own default one, and it cannot be paid.
   """
 
   use Gettext, backend: TymeslotWeb.Gettext
@@ -25,12 +30,13 @@ defmodule Tymeslot.Teams do
   alias Tymeslot.Auth.UserQueries
   alias Tymeslot.Emails.EmailScheduler
   alias Tymeslot.Features
-  alias Tymeslot.Infrastructure.AvailabilityCache
-  alias Tymeslot.MeetingTypes.MeetingTypeQueries
+  alias Tymeslot.MeetingTypes
+  alias Tymeslot.MeetingTypes.MeetingTypeSchema
   alias Tymeslot.MeetingTypes.Slugs
   alias Tymeslot.Repo
   alias Tymeslot.Scheduling.LinkAccessPolicy
-  alias Tymeslot.Teams.{TeamQueries, TeamSchema}
+  alias Tymeslot.Teams.{TeamLogos, TeamQueries, TeamSchema}
+  alias Tymeslot.ThemeCustomizations
 
   @type team :: TeamSchema.t()
 
@@ -42,6 +48,23 @@ defmodule Tymeslot.Teams do
   @doc "Lists the teams `user_id` belongs to, as owner or member."
   @spec list_teams_for_user(pos_integer()) :: [team()]
   def list_teams_for_user(user_id), do: TeamQueries.list_for_member(user_id)
+
+  @doc "Lists the teams `user_id` owns, the ones whose meeting types they manage."
+  @spec list_owned_teams(pos_integer()) :: [team()]
+  def list_owned_teams(user_id) do
+    user_id
+    |> list_teams_for_user()
+    |> Enum.filter(&owner?(&1, user_id))
+  end
+
+  @doc """
+  The meeting types a team page lists: active and not private. A private one
+  is still bookable through its direct link (`/team/:slug/:type`).
+  """
+  @spec public_meeting_types(team()) :: [MeetingTypeSchema.t()]
+  def public_meeting_types(%TeamSchema{meeting_types: meeting_types}) do
+    Enum.filter(meeting_types, &(&1.is_active and not &1.is_private))
+  end
 
   @doc "Fetches a team `user_id` owns."
   @spec get_team_for_owner(pos_integer(), pos_integer()) :: {:ok, team()} | {:error, :not_found}
@@ -136,12 +159,45 @@ defmodule Tymeslot.Teams do
 
   def member_ready?(_profile), do: false
 
-  @doc "The booking theme of the owner of the team at `slug`, or nil."
-  @spec owner_booking_theme(String.t()) :: String.t() | nil
-  def owner_booking_theme(slug) do
+  @doc """
+  The theme the team page at `slug` renders: the team's own, else its owner's,
+  or nil for an unknown team.
+  """
+  @spec page_theme_by_slug(String.t()) :: String.t() | nil
+  def page_theme_by_slug(slug) do
     case get_team_by_slug(slug) do
-      %TeamSchema{owner: %{profile: %{booking_theme: theme}}} when is_binary(theme) -> theme
-      _other -> nil
+      %TeamSchema{} = team -> booking_theme(team)
+      nil -> nil
+    end
+  end
+
+  @doc "The theme a team page renders: the team's own, else its owner's."
+  @spec booking_theme(team()) :: String.t() | nil
+  def booking_theme(%TeamSchema{booking_theme: theme}) when is_binary(theme), do: theme
+  def booking_theme(%TeamSchema{owner: %{profile: %{booking_theme: theme}}}), do: theme
+  def booking_theme(_team), do: nil
+
+  @doc """
+  Whose theme customisation a team page renders and edits
+  (`Tymeslot.ThemeCustomizations.Owner`): the team's own, stored with its
+  owner's profile id. Nil when the owner has no profile.
+  """
+  @spec customization_owner(team()) :: {:team, pos_integer(), pos_integer()} | nil
+  def customization_owner(%TeamSchema{id: team_id, owner: %{profile: %{id: profile_id}}}),
+    do: {:team, team_id, profile_id}
+
+  def customization_owner(_team), do: nil
+
+  @doc """
+  Sets the team page's theme, for a team `owner_user_id` owns. Nil makes the
+  page wear its owner's again.
+  """
+  @spec update_booking_theme(pos_integer(), pos_integer(), String.t() | nil) ::
+          {:ok, team()} | {:error, :not_found | Changeset.t()}
+  def update_booking_theme(team_id, owner_user_id, theme_id) do
+    with {:ok, team} <- get_team_for_owner(team_id, owner_user_id),
+         {:ok, _updated} <- TeamQueries.update_booking_theme(team, theme_id) do
+      {:ok, TeamQueries.get(team.id)}
     end
   end
 
@@ -164,14 +220,15 @@ defmodule Tymeslot.Teams do
   # --- Writing -------------------------------------------------------------
 
   @doc """
-  Creates a team owned by `owner_user_id`, its owner membership and its
-  settings meeting type, in one transaction.
+  Creates a team owned by `owner_user_id` and its owner membership, in one
+  transaction.
 
-  `attrs` carries `name`, `duration_minutes`, and optionally `slug` (derived
-  from the name when blank) and `description`.
+  `attrs` carries `name`, and optionally `slug` (derived from the name when
+  blank) and `description`. The team offers nothing until team meeting
+  types are offered on it (`offer_meeting_type/3`).
   """
   @spec create_team(pos_integer(), map()) ::
-          {:ok, team()} | {:error, :name_taken | Features.access_error() | Changeset.t()}
+          {:ok, team()} | {:error, Features.access_error() | Changeset.t()}
   def create_team(owner_user_id, attrs) do
     with :ok <- Features.check_access(owner_user_id, :teams) do
       attrs =
@@ -183,8 +240,7 @@ defmodule Tymeslot.Teams do
       result =
         Repo.transaction(fn ->
           with {:ok, team} <- TeamQueries.insert_team(attrs),
-               {:ok, _owner} <- TeamQueries.insert_member(team.id, owner_user_id, :owner),
-               {:ok, _meeting_type} <- insert_meeting_type(team) do
+               {:ok, _owner} <- TeamQueries.insert_member(team.id, owner_user_id, :owner) do
             team.id
           else
             {:error, reason} -> Repo.rollback(reason)
@@ -195,43 +251,136 @@ defmodule Tymeslot.Teams do
     end
   end
 
-  @doc """
-  Updates a team `owner_user_id` owns, and its settings meeting type with it.
-
-  Every member's cached availability is dropped: a new duration moves every
-  member's grid.
-  """
+  @doc "Updates a team `owner_user_id` owns."
   @spec update_team(pos_integer(), pos_integer(), map()) ::
-          {:ok, team()} | {:error, :not_found | :name_taken | Changeset.t()}
+          {:ok, team()} | {:error, :not_found | Changeset.t()}
   def update_team(team_id, owner_user_id, attrs) do
-    with {:ok, team} <- get_team_for_owner(team_id, owner_user_id) do
-      attrs = attrs |> stringify() |> Map.delete("owner_user_id")
-
-      result =
-        Repo.transaction(fn ->
-          with {:ok, updated} <- TeamQueries.update_team(team, attrs),
-               {:ok, _meeting_type} <- sync_meeting_type(team.meeting_type, updated) do
-            updated.id
-          else
-            {:error, reason} -> Repo.rollback(reason)
-          end
-        end)
-
-      with {:ok, updated} <- reload_result(result) do
-        invalidate_members(updated)
-        {:ok, updated}
-      end
+    with {:ok, team} <- get_team_for_owner(team_id, owner_user_id),
+         {:ok, updated} <-
+           TeamQueries.update_team(team, attrs |> stringify() |> Map.delete("owner_user_id")) do
+      {:ok, TeamQueries.get(updated.id)}
     end
   end
 
   @doc """
-  Deletes a team `owner_user_id` owns. Its memberships and settings meeting
-  type go with it; meetings booked through it stay, no longer pointing at it.
+  Updates the team page's introductory wording (`booking_text_enabled` and the
+  three lines), for a team `owner_user_id` owns.
+  """
+  @spec update_booking_text(pos_integer(), pos_integer(), map()) ::
+          {:ok, team()} | {:error, :not_found | Changeset.t()}
+  def update_booking_text(team_id, owner_user_id, attrs) do
+    with {:ok, team} <- get_team_for_owner(team_id, owner_user_id),
+         {:ok, updated} <- TeamQueries.update_booking_text(team, attrs) do
+      {:ok, TeamQueries.get(updated.id)}
+    end
+  end
+
+  @doc "The public path of the team's logo, or nil when it has none."
+  @spec logo_path(team() | map() | nil) :: String.t() | nil
+  defdelegate logo_path(team), to: TeamLogos
+
+  @doc """
+  Stores an uploaded logo for a team `owner_user_id` owns, replacing any
+  earlier one. `entry` carries the temporary `path`, the `client_name` and the
+  `client_size` of the upload.
+  """
+  @spec store_logo(pos_integer(), pos_integer(), TeamLogos.uploaded_entry()) ::
+          {:ok, team()} | {:error, term()}
+  def store_logo(team_id, owner_user_id, entry) do
+    with {:ok, team} <- get_team_for_owner(team_id, owner_user_id),
+         {:ok, updated} <- TeamLogos.store(team, entry) do
+      {:ok, TeamQueries.get(updated.id)}
+    end
+  end
+
+  @doc "Removes the logo of a team `owner_user_id` owns."
+  @spec remove_logo(pos_integer(), pos_integer()) ::
+          {:ok, team()} | {:error, :not_found | Changeset.t()}
+  def remove_logo(team_id, owner_user_id) do
+    with {:ok, team} <- get_team_for_owner(team_id, owner_user_id),
+         {:ok, updated} <- TeamLogos.remove(team) do
+      {:ok, TeamQueries.get(updated.id)}
+    end
+  end
+
+  @doc """
+  Creates a team meeting type for `user_id`, from the meeting type form's
+  params, exactly as a personal one is created
+  (`Tymeslot.MeetingTypes.create_meeting_type_from_form/4`). It is offered by
+  none of their teams until `offer_meeting_type/3` adds it to one.
+  """
+  @spec create_team_meeting_type(pos_integer(), map(), map()) ::
+          {:ok, MeetingTypeSchema.t()} | {:error, atom() | Changeset.t()}
+  def create_team_meeting_type(user_id, form_params, ui_state) do
+    with :ok <- Features.check_access(user_id, :teams) do
+      MeetingTypes.create_meeting_type_from_form(user_id, form_params, ui_state, team_type: true)
+    end
+  end
+
+  @doc """
+  Offers one of `owner_user_id`'s team meeting types on a team they own.
+  Offering one already offered is a no-op.
+  """
+  @spec offer_meeting_type(pos_integer(), pos_integer(), pos_integer()) ::
+          {:ok, team()} | {:error, :not_found}
+  def offer_meeting_type(team_id, owner_user_id, meeting_type_id) do
+    with {:ok, team} <- get_team_for_owner(team_id, owner_user_id),
+         {:ok, meeting_type} <- owned_team_type(meeting_type_id, owner_user_id) do
+      TeamQueries.insert_team_meeting_type(team.id, meeting_type.id)
+      {:ok, TeamQueries.get(team.id)}
+    end
+  end
+
+  @doc """
+  Orders the meeting types of a team `owner_user_id` owns, as
+  `meeting_type_ids` lists them. Each team keeps its own order, whatever the
+  order of the same types elsewhere.
+  """
+  @spec reorder_meeting_types(pos_integer(), pos_integer(), [pos_integer()]) ::
+          {:ok, team()} | {:error, :not_found}
+  def reorder_meeting_types(team_id, owner_user_id, meeting_type_ids) do
+    with {:ok, team} <- get_team_for_owner(team_id, owner_user_id) do
+      TeamQueries.reorder_team_meeting_types(team.id, meeting_type_ids)
+      {:ok, TeamQueries.get(team.id)}
+    end
+  end
+
+  @doc "Stops offering a meeting type on a team `owner_user_id` owns."
+  @spec withdraw_meeting_type(pos_integer(), pos_integer(), pos_integer()) ::
+          {:ok, team()} | {:error, :not_found}
+  def withdraw_meeting_type(team_id, owner_user_id, meeting_type_id) do
+    with {:ok, team} <- get_team_for_owner(team_id, owner_user_id) do
+      TeamQueries.delete_team_meeting_type(team.id, meeting_type_id)
+      {:ok, TeamQueries.get(team.id)}
+    end
+  end
+
+  @doc "Whether `team` offers `meeting_type`."
+  @spec offers?(team(), map() | nil) :: boolean()
+  def offers?(%TeamSchema{meeting_types: meeting_types}, %{id: id}),
+    do: Enum.any?(meeting_types, &(&1.id == id))
+
+  def offers?(_team, _meeting_type), do: false
+
+  defp owned_team_type(meeting_type_id, user_id) do
+    case MeetingTypes.get_meeting_type(meeting_type_id, user_id) do
+      %{is_team_type: true} = meeting_type -> {:ok, meeting_type}
+      _other -> {:error, :not_found}
+    end
+  end
+
+  @doc """
+  Deletes a team `owner_user_id` owns. Its memberships and meeting types go
+  with it; meetings booked through it stay, no longer pointing at it.
   """
   @spec delete_team(pos_integer(), pos_integer()) :: :ok | {:error, :not_found}
   def delete_team(team_id, owner_user_id) do
     with {:ok, team} <- get_team_for_owner(team_id, owner_user_id),
          {:ok, _deleted} <- TeamQueries.delete_team(team) do
+      # Its theme customisations went with it; their uploaded files did not,
+      # nor did its logo.
+      ThemeCustomizations.delete_team_files(team.id)
+      TeamLogos.delete_all_files(team.id)
       :ok
     else
       {:error, %Changeset{}} -> {:error, :not_found}
@@ -293,13 +442,6 @@ defmodule Tymeslot.Teams do
   def error_message(:owner_cannot_leave),
     do: dgettext("dashboard_teams", "The owner cannot leave the team. Delete it instead.")
 
-  def error_message(:name_taken),
-    do:
-      dgettext(
-        "dashboard_teams",
-        "You already have a meeting type with this name. Choose another team name."
-      )
-
   def error_message(:not_found), do: dgettext("dashboard_teams", "This team no longer exists.")
 
   def error_message(_other),
@@ -317,48 +459,6 @@ defmodule Tymeslot.Teams do
       _blank -> Map.put(attrs, "slug", slug_from_name(attrs["name"]))
     end
   end
-
-  defp insert_meeting_type(team) do
-    team
-    |> meeting_type_attrs()
-    |> Map.merge(%{
-      user_id: team.owner_user_id,
-      team_id: team.id,
-      is_private: true,
-      is_active: true,
-      allow_guests: false,
-      payment_required: false,
-      requires_approval: false,
-      icon: "none"
-    })
-    |> MeetingTypeQueries.create_meeting_type()
-    |> map_meeting_type_error()
-  end
-
-  defp sync_meeting_type(nil, team), do: insert_meeting_type(team)
-
-  defp sync_meeting_type(meeting_type, team) do
-    meeting_type
-    |> MeetingTypeQueries.update_meeting_type(meeting_type_attrs(team))
-    |> map_meeting_type_error()
-  end
-
-  defp meeting_type_attrs(team) do
-    %{name: team.name, description: team.description, duration_minutes: team.duration_minutes}
-  end
-
-  # The settings row shares the owner's `(user_id, name)` unique index with
-  # their own meeting types.
-  defp map_meeting_type_error({:error, %Changeset{errors: errors} = changeset}) do
-    name_taken? =
-      Enum.any?(errors, fn {_field, {_message, opts}} ->
-        opts[:constraint_name] == "meeting_types_user_id_name_index"
-      end)
-
-    if name_taken?, do: {:error, :name_taken}, else: {:error, changeset}
-  end
-
-  defp map_meeting_type_error(result), do: result
 
   defp reload_result({:ok, team_id}), do: {:ok, TeamQueries.get(team_id)}
   defp reload_result({:error, _reason} = error), do: error
@@ -385,9 +485,5 @@ defmodule Tymeslot.Teams do
         {:ok, _deleted} = TeamQueries.delete_member(membership)
         :ok
     end
-  end
-
-  defp invalidate_members(team) do
-    Enum.each(team.members, &AvailabilityCache.invalidate_for_user(&1.user_id))
   end
 end

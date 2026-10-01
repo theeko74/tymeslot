@@ -148,13 +148,19 @@ defmodule TymeslotWeb.Hooks.PageViewHook do
 
   # A team page's views are the owner's: they are its organiser, and the team's
   # settings meeting type is theirs.
-  defp resolve_target(%{"team_slug" => slug}) when is_binary(slug) do
-    case Teams.get_team_by_slug(slug) do
-      %{owner_user_id: owner_id} = team ->
-        {owner_id, team.meeting_type && team.meeting_type.id, Teams.public_path(team)}
+  defp resolve_target(%{"team_slug" => team_slug} = params) when is_binary(team_slug) do
+    type_slug = params["slug"]
+
+    path =
+      if is_binary(type_slug), do: "/team/#{team_slug}/#{type_slug}", else: "/team/#{team_slug}"
+
+    case Teams.get_team_by_slug(team_slug) do
+      %{owner_user_id: owner_id, meeting_types: meeting_types} ->
+        meeting_type = MeetingTypes.find_team_type_by_slug(meeting_types, type_slug)
+        {owner_id, meeting_type && meeting_type.id, path}
 
       nil ->
-        {nil, nil, Teams.public_path(slug)}
+        {nil, nil, path}
     end
   end
 

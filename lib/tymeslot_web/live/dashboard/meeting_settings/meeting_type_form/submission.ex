@@ -17,6 +17,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm.Submission do
 
   alias Tymeslot.MeetingTypes
   alias Tymeslot.MeetingTypes.InputValidation
+  alias Tymeslot.Teams
   alias Tymeslot.Utils.SanitizeMerge
 
   @doc """
@@ -72,20 +73,31 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm.Submission do
   to inline field errors; context-level failures surface as their original
   `{:error, atom}` / `{:error, changeset}` shapes.
   """
-  @spec persist(map(), map(), Ecto.Schema.t() | nil, map()) ::
+  @spec persist(map(), map(), Ecto.Schema.t() | nil, map(), keyword()) ::
           {:ok, Ecto.Schema.t()}
           | {:error, {:invalid_form, map()}}
           | {:error, atom() | Ecto.Changeset.t()}
-  def persist(params, metadata, editing_type, current_user) do
+  def persist(params, metadata, editing_type, current_user, opts \\ []) do
     case InputValidation.validate_meeting_type_form(params, metadata: metadata) do
       {:ok, sanitized_params} ->
         ui_state = build_ui_state(params, sanitized_params)
         validated_params = SanitizeMerge.merge(params, sanitized_params)
 
-        if editing_type do
-          MeetingTypes.update_meeting_type_from_form(editing_type, validated_params, ui_state)
-        else
-          MeetingTypes.create_meeting_type_from_form(current_user.id, validated_params, ui_state)
+        cond do
+          editing_type ->
+            MeetingTypes.update_meeting_type_from_form(editing_type, validated_params, ui_state)
+
+          # A new team meeting type (`opts[:team_type]`), offered by none of
+          # the user's teams until they add it to one.
+          opts[:team_type] ->
+            Teams.create_team_meeting_type(current_user.id, validated_params, ui_state)
+
+          true ->
+            MeetingTypes.create_meeting_type_from_form(
+              current_user.id,
+              validated_params,
+              ui_state
+            )
         end
 
       {:error, validation_errors} ->
